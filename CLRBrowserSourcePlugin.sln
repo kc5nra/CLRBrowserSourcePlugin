@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.20617.1 PREVIEW
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLRBrowserSourcePlugin", "Plugin\CLRBrowserSourcePlugin.csproj", "{2C4D3528-0D34-4679-B507-5F7953BB07B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLRBrowserSourceClient", "Client\CLRBrowserSourceClient.csproj", "{A12F6229-68CB-4EC1-A318-17FAA0386CE6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CefGlue", "..\xilium.cefglue\CefGlue\CefGlue.csproj", "{703FF300-34B9-48D4-A5D6-E741F48D5F95}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Debug|x86.ActiveCfg = Debug|x86
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Debug|x86.Build.0 = Debug|x86
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Release|x86.ActiveCfg = Release|x86
+		{2C4D3528-0D34-4679-B507-5F7953BB07B0}.Release|x86.Build.0 = Release|x86
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Debug|x86.ActiveCfg = Debug|x86
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Debug|x86.Build.0 = Debug|x86
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Release|x86.ActiveCfg = Release|x86
+		{A12F6229-68CB-4EC1-A318-17FAA0386CE6}.Release|x86.Build.0 = Release|x86
+		{703FF300-34B9-48D4-A5D6-E741F48D5F95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{703FF300-34B9-48D4-A5D6-E741F48D5F95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{703FF300-34B9-48D4-A5D6-E741F48D5F95}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{703FF300-34B9-48D4-A5D6-E741F48D5F95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{703FF300-34B9-48D4-A5D6-E741F48D5F95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{703FF300-34B9-48D4-A5D6-E741F48D5F95}.Release|x86.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

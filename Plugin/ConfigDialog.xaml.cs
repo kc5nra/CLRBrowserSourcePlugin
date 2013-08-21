@@ -55,12 +55,15 @@ namespace CLRBrowserSourcePlugin
                 ShowLineNumbers = true,
             };
 
+            advancedPropertiesCheckBox.IsChecked = config.BrowserSourceSettings.IsShowingAdvancedProperties;
+            SetTabVisibility(advancedTab, config.BrowserSourceSettings.IsShowingAdvancedProperties);
 
             url.Text = config.BrowserSourceSettings.Url;
             cssEditor.Text = config.BrowserSourceSettings.CSS;
             templateEditor.Text = config.BrowserSourceSettings.Template;
             widthText.Text = config.BrowserSourceSettings.Width.ToString();
             heightText.Text = config.BrowserSourceSettings.Height.ToString();
+            opacitySlider.Value = config.BrowserSourceSettings.Opacity;
 
             instanceSettings.SelectedObject = config.BrowserInstanceSettings;
 
@@ -91,8 +94,10 @@ namespace CLRBrowserSourcePlugin
             config.BrowserSourceSettings.Height = height;
             config.BrowserSourceSettings.CSS = cssEditor.Text;
             config.BrowserSourceSettings.Template = templateEditor.Text;
-
+            config.BrowserSourceSettings.IsShowingAdvancedProperties = advancedPropertiesCheckBox.IsChecked.GetValueOrDefault();
+            config.BrowserSourceSettings.Opacity = opacitySlider.Value;
             DialogResult = config.Save(dataElement);
+            
             Close();
             
         }
@@ -107,6 +112,20 @@ namespace CLRBrowserSourcePlugin
         {
             
         }
-        
+
+        private void SetTabVisibility(TabItem tabItem, bool isVisible) 
+        {
+            //Style style = new Style();
+            //style.Setters.Add(new Setter(UIElement.VisibilityProperty, isVisible ? Visibility.Visible : Visibility.Collapsed));
+            //tabItem.Style = style;
+            tabItem.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void advancedPropertiesCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            CheckBox cb = sender as CheckBox;
+            SetTabVisibility(advancedTab, cb.IsChecked.GetValueOrDefault());
+        }
+       
     }
 }

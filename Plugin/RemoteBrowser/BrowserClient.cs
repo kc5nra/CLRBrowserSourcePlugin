@@ -12,31 +12,31 @@ namespace CLRBrowserSourcePlugin.Browser
     {
         private bool isDisposed;
 
-        private BrowserLifeSpanHandler lifeSpanHandler;
-        private BrowserDisplayHandler displayHandler;
-        private BrowserRenderHandler renderHandler;
+        public BrowserLifeSpanHandler LifeSpanHandler { get; set; }
+        public BrowserDisplayHandler DisplayHandler { get; set; }
+        public BrowserRenderHandler RenderHandler { get; set; }
 
         public BrowserClient()
         {
             
-            lifeSpanHandler = new BrowserLifeSpanHandler();
-            displayHandler = new BrowserDisplayHandler();
-            renderHandler = new BrowserRenderHandler();
+            LifeSpanHandler = new BrowserLifeSpanHandler();
+            DisplayHandler = new BrowserDisplayHandler();
+            RenderHandler = new BrowserRenderHandler();
         }
 
         protected override CefLifeSpanHandler GetLifeSpanHandler()
         {
-            return lifeSpanHandler;
+            return LifeSpanHandler;
         }
 
         protected override CefDisplayHandler GetDisplayHandler()
         {
-            return displayHandler;
+            return DisplayHandler;
         }
 
         protected override CefRenderHandler GetRenderHandler()
         {
-            return renderHandler;
+            return RenderHandler;
         }
 
         #region Disposable
@@ -52,46 +52,18 @@ namespace CLRBrowserSourcePlugin.Browser
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected new virtual void Dispose(bool disposing)
         {
             if (disposing)
             {
-                if (renderHandler != null)
+                if (RenderHandler != null)
                 {
-                    renderHandler.Dispose();
-                    renderHandler = null;
+                    RenderHandler.Dispose();
+                    RenderHandler = null;
                 }
             }
 
             isDisposed = true;
-        }
-
-        #endregion
-
-        #region Properties
-
-        public BrowserLifeSpanHandler LifeSpanHandler
-        {
-            get
-            {
-                return lifeSpanHandler;
-            }
-        }
-
-        public BrowserDisplayHandler DisplayHandler
-        {
-            get
-            {
-                return displayHandler;
-            }
-        }
-
-        public BrowserRenderHandler RenderHandler
-        {
-            get
-            {
-                return renderHandler;
-            }
         }
 
         #endregion

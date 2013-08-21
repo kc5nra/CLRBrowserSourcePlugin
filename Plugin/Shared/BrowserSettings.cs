@@ -287,12 +287,17 @@ namespace CLRBrowserSourcePlugin.Shared
                 + "    </object>\r\n"
                 + "  </body>\r\n"
                 + "</html>\r\n";
+            IsShowingAdvancedProperties = false;
+            Opacity = 1.0f;
         }
+
+        public bool IsShowingAdvancedProperties { get; set; }
         public String Url { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public String CSS { get; set; }
         public String Template { get; set; }
+        public double Opacity { get; set; }
     }
 
     [Serializable]

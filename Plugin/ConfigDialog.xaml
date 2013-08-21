@@ -16,12 +16,11 @@
         </Grid.RowDefinitions>
         <Button x:Name="cancelButton" Content="Cancel" HorizontalAlignment="Right" Margin="0,0,10,26" Width="75" RenderTransformOrigin="1.347,1.364" Click="cancelButton_Click" Height="22" VerticalAlignment="Bottom" Grid.Row="2"/>
         <Button x:Name="okButton" Content="OK" Margin="0,0,90,26" Click="okButton_Click" RenderTransformOrigin="0.493,0.727" Height="22" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="75" Grid.Row="2"/>
-        <TabControl HorizontalAlignment="Left" Height="426" Margin="10,10,0,0" VerticalAlignment="Top" Width="790" Grid.RowSpan="3">
+        <TabControl HorizontalAlignment="Left" Height="426" Margin="10,10,0,0" VerticalAlignment="Top" Width="790" Grid.RowSpan="3" BorderThickness="1">
             <TabItem Header="General">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="431*"/>
-                        <ColumnDefinition Width="349*"/>
+                        <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -31,14 +30,15 @@
                         <Grid Margin="0,0,-2,-12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="45"/>
-                                <ColumnDefinition/>
+                                <ColumnDefinition Width="19*"/>
+                                <ColumnDefinition Width="51*"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="15"/>
                                 <RowDefinition Height="23"/>
                                 <RowDefinition/>
                             </Grid.RowDefinitions>
-                            <GroupBox Header="Dimensions" HorizontalAlignment="Left" Margin="10,39,0,0" VerticalAlignment="Top" Height="96" Width="213" Grid.Row="2" Grid.ColumnSpan="2">
+                            <GroupBox Header="Dimensions" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" Height="111" Width="213" Grid.Row="2" Grid.ColumnSpan="2">
                                 <Grid Margin="-13,0,13,0">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="34"/>
@@ -56,24 +56,50 @@
                                     <TextBox x:Name="heightText" TextWrapping="Wrap" Margin="10,3,10,0" Grid.Row="1" Grid.Column="1" Height="23" VerticalAlignment="Top"/>
                                 </Grid>
                             </GroupBox>
+
                             <Label Content="URL" RenderTransformOrigin="0.513,-0.308" Grid.RowSpan="2" Height="26" VerticalAlignment="Top" Grid.Row="1" HorizontalAlignment="Left" Width="47" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-                            <TextBox x:Name="url" Height="23" Margin="10,5,10,0" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="2"/>
+                            <TextBox x:Name="url" Height="23" Margin="10,5,10,0" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="3"/>
+                            <GroupBox Header="Output Characteristics" HorizontalAlignment="Left" Margin="16,41,0,0" Grid.Row="2" VerticalAlignment="Top" Height="111" Width="484" Grid.Column="2">
+                                <Grid Margin="0,0,-2,-3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="51*"/>
+                                        <ColumnDefinition Width="107*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="opacitySlider" Margin="10,0,0,32" HorizontalAlignment="Left" Width="134" Height="24" VerticalAlignment="Bottom" Maximum="1" Value="1" />
+                                    <Label Content="Opacity" Margin="10,10,10,0" VerticalAlignment="Top"/>
+                                    <Label Content="Muf Smells" Margin="10" Grid.Column="1" FontFamily="Comic Sans MS" FontSize="48" HorizontalAlignment="Center"/>
+                                    <Rectangle x:Name="opacityRectangle" Margin="10,9,10,11" Grid.Column="1" Fill="Black" RadiusX="5" RadiusY="5" StrokeDashCap="Round" StrokeThickness="5" Opacity="{Binding ElementName=opacitySlider, Path=Value}"/>
+
+                                </Grid>
+                            </GroupBox>
                         </Grid>
+
+
                     </GroupBox>
+                    <CheckBox x:Name="advancedPropertiesCheckBox" Content="Show Advanced Properties" Margin="10,0,10,10" Grid.Row="1" Height="16" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Unchecked="advancedPropertiesCheckBox_Checked" Checked="advancedPropertiesCheckBox_Checked"/>
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="cssTab" Header="CSS">
+                <Grid x:Name="cssGrid"/>
+            </TabItem>
+            <TabItem x:Name="templateTab" Header="Template">
+                <Grid x:Name="templateGrid"/>
+            </TabItem>
+            <TabItem x:Name="advancedTab" Header="Advanced" BorderBrush="#FFFF9292">
+                <TabItem.Background>
+                    <LinearGradientBrush EndPoint="0,1" StartPoint="0,0">
+                        <GradientStop Color="#FFF3F3F3" Offset="0"/>
+                        <GradientStop Color="#FFEBEBEB" Offset="0.5"/>
+                        <GradientStop Color="#FFDDDDDD" Offset="0.5"/>
+                        <GradientStop Color="#FFFFD386" Offset="1"/>
+                    </LinearGradientBrush>
+                </TabItem.Background>
+                <Grid x:Name="advancedGrid">
                     <WindowsFormsHost x:Name="instanceProperties" Margin="10" Grid.Row="1" Grid.Column="1">
                         <WinForms:PropertyGrid x:Name="instanceSettings"/>
                     </WindowsFormsHost>
                 </Grid>
             </TabItem>
-            <TabItem Header="CSS">
-                <Grid x:Name="cssGrid"/>
-            </TabItem>
-            <TabItem Header="Template">
-                <Grid x:Name="templateGrid"/>
-            </TabItem>
-
-
-
 
         </TabControl>
 

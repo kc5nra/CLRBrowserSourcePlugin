@@ -20,6 +20,8 @@ namespace CLRBrowserSourcePlugin.Browser
         private int width;
         private int height;
 
+        bool isClosed = false;
+
         public BrowserWrapper(BrowserSource browserSource)
         {
             browserClient = new BrowserClient();
@@ -28,6 +30,7 @@ namespace CLRBrowserSourcePlugin.Browser
             browserClient.RenderHandler.CreateTextureEvent = new CreateTextureEventHandler(browserSource.CreateTexture);
             browserClient.RenderHandler.DestroyTextureEvent = new DestroyTextureEventHandler(browserSource.DestroyTexture);
             browserClient.LifeSpanHandler.AfterCreatedEvent = new AfterCreatedEventHandler(AfterCreated);
+            browserClient.LifeSpanHandler.OnBeforeCloseEvent = new OnBeforeCloseEventHandler(OnBeforeClose);
         }
 
         public void UpdateSettings(BrowserConfig config)
@@ -41,6 +44,9 @@ namespace CLRBrowserSourcePlugin.Browser
             windowInfo.Width = (int)width;
             windowInfo.Height = (int)height;
 
+            String base64EncodedDataUri = "data:text/css;charset=utf-8;base64,";
+            String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(config.BrowserSourceSettings.CSS));
+            
             BrowserInstanceSettings settings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
             settings.MergeWith(config.BrowserInstanceSettings);
             
@@ -78,7 +84,7 @@ namespace CLRBrowserSourcePlugin.Browser
                 //TabToLinks = settings.TabToLinks,
                 //TextAreaResize = settings.TextAreaResize,
                 UniversalAccessFromFileUrls = settings.UniversalAccessFromFileUrls,
-                //UserStyleSheetLocation = settings.UserStyleSheetLocation,
+                UserStyleSheetLocation = base64EncodedDataUri + base64EncodedCss,
                 WebGL = settings.WebGL,
                 WebSecurity = settings.WebSecurity,
             };
@@ -106,6 +112,11 @@ namespace CLRBrowserSourcePlugin.Browser
             this.browserHost = browser.GetHost();
         }
 
+        public void OnBeforeClose(CefBrowser browser)
+        {
+            isClosed = true;
+        }
+
         #region Disposable
 
         ~BrowserWrapper()
@@ -126,6 +137,8 @@ namespace CLRBrowserSourcePlugin.Browser
                 if (browserHost != null)
                 {
                     browserHost.CloseBrowser();
+                    // OnBeforeClose must be called before we start disposing
+                    while (!isClosed) ;
                     browserHost.Dispose();
                     browserHost = null;
                 }

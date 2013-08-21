@@ -22,6 +22,10 @@ namespace CLRBrowserSourcePlugin
 
         public override void ApplySettings()
         {
+            BrowserSettings.Instance.SourceSettings.CSS = settingsPane.CSSEditor.Text;
+            BrowserSettings.Instance.SourceSettings.Template = settingsPane.TemplateEditor.Text;
+            BrowserSettings.Instance.SourceSettings.IsShowingAdvancedProperties = settingsPane.AdvancedPropertiesCheckBox.IsChecked.GetValueOrDefault();
+
             BrowserSettings.Instance.Save();
         }
 

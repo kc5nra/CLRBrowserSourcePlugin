@@ -9,22 +9,38 @@ using Xilium.CefGlue;
 namespace CLRBrowserSourcePlugin.Browser
 {
     public delegate void AfterCreatedEventHandler(CefBrowser browser);
+    public delegate bool DoCloseEventHandler(CefBrowser browser);
+    public delegate void OnBeforeCloseEventHandler(CefBrowser browser);
 
     internal class BrowserLifeSpanHandler : CefLifeSpanHandler
     {
-        private AfterCreatedEventHandler afterCreatedEventHandler;
-
         protected override void OnAfterCreated(CefBrowser browser)
         {
-            afterCreatedEventHandler(browser);
-        }
-
-        public AfterCreatedEventHandler AfterCreatedEvent
-        {
-            set
+            if (AfterCreatedEvent != null)
             {
-                afterCreatedEventHandler = value;
+                AfterCreatedEvent(browser);
             }
         }
+
+        protected override bool DoClose(CefBrowser browser)
+        {
+            if (DoCloseEvent != null)
+            {
+                return DoCloseEvent(browser);
+            }
+            return false;
+        }
+
+        protected override void OnBeforeClose(CefBrowser browser)
+        {
+            if (OnBeforeCloseEvent != null)
+            {
+                OnBeforeCloseEvent(browser);
+            }
+        }
+
+        public AfterCreatedEventHandler AfterCreatedEvent { private get; set; }
+        public DoCloseEventHandler DoCloseEvent { private get; set; }
+        public OnBeforeCloseEventHandler OnBeforeCloseEvent { private get; set; }
     }
 }

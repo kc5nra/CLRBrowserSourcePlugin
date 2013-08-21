@@ -12,7 +12,9 @@
         </Grid.RowDefinitions>
         <TabControl HorizontalAlignment="Left" Height="482" Margin="10,10,0,0" VerticalAlignment="Top" Width="614">
             <TabItem Header="General">
-                <Grid/>
+                <Grid>
+                    <CheckBox x:Name="advancedPropertiesCheckBox" Content="Show Advanced Tab by default on new sources" Margin="10,0,10,424" Height="16" VerticalAlignment="Bottom" Background="#FFF5CFCF" BorderBrush="#FFD30000"/>
+                </Grid>
             </TabItem>
             <TabItem Header="Instance">
                 <Grid Margin="0,0,0,40">

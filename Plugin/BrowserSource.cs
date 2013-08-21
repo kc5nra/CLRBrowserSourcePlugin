@@ -22,6 +22,7 @@ namespace CLRBrowserSourcePlugin
         private Dictionary<IntPtr, Texture> textureMap;
         private Object textureLock = new Object();
         private Texture texture;
+        private UInt32 outputColor;
 
         public BrowserSource(XElement configElement)
         {
@@ -64,14 +65,12 @@ namespace CLRBrowserSourcePlugin
         override public void UpdateSettings()
         {
             config.Reload(configElement);
-            
+
             // unscaled w/h
             Size.X = (float)config.BrowserSourceSettings.Width;
             Size.Y = (float)config.BrowserSourceSettings.Height;
 
-            // initial scaled w/h
-            configElement.Parent.SetInt("cx", config.BrowserSourceSettings.Width);
-            configElement.Parent.SetInt("cy", config.BrowserSourceSettings.Height);
+            outputColor = 0xFFFFFF | (((uint)(config.BrowserSourceSettings.Opacity * 255) & 0xFF) << 24);
 
             if (browser != null)
             {
@@ -127,7 +126,7 @@ namespace CLRBrowserSourcePlugin
             {
                 if (texture != null)
                 {
-                    GS.DrawSprite(texture, 0xFFFFFFFF, x, y, x + width, y + height);
+                    GS.DrawSprite(texture, outputColor, x, y, x + width, y + height);
                 }
             }
         }

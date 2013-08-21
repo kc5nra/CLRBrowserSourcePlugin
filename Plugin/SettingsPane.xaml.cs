@@ -30,10 +30,8 @@ namespace CLRBrowserSourcePlugin
     public partial class SettingsPane : UserControl
     {
         private EventHandler dirtyEventHandler;
+        private RoutedEventHandler dirtyRoutedHandler;
         private System.Windows.Forms.PropertyValueChangedEventHandler dirtyPropHandler;
-        
-        TextEditor templateEditor;
-        TextEditor cssEditor;
 
         public SettingsPane()
         {
@@ -44,42 +42,56 @@ namespace CLRBrowserSourcePlugin
                 API.Instance.SetChangedSettings(true);
             };
 
+            dirtyRoutedHandler = (object o, RoutedEventArgs e) =>
+            {
+                API.Instance.SetChangedSettings(true);
+            };
+
             dirtyPropHandler = (object o, System.Windows.Forms.PropertyValueChangedEventArgs e) =>
             {
                 API.Instance.SetChangedSettings(true);
             };
 
-            cssEditor = new TextEditor
+            CSSEditor = new TextEditor
             {
                 FontFamily = new FontFamily("Consolas"),
                 SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("CSS"),
                 ShowLineNumbers = true
             };
             
-            templateEditor = new TextEditor
+            TemplateEditor = new TextEditor
             {
                 FontFamily = new FontFamily("Consolas"),
                 SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("HTML"),
                 ShowLineNumbers = true,
             };
 
-            cssGrid.Children.Add(cssEditor);
-            templatesGrid.Children.Add(templateEditor);
+            cssGrid.Children.Add(CSSEditor);
+            templatesGrid.Children.Add(TemplateEditor);
+
+            AdvancedPropertiesCheckBox = advancedPropertiesCheckBox;
 
             Reload();
 
-            cssEditor.TextChanged += dirtyEventHandler;
-            templateEditor.TextChanged += dirtyEventHandler;
+            CSSEditor.TextChanged += dirtyEventHandler;
+            TemplateEditor.TextChanged += dirtyEventHandler;
             advancedSettings.PropertyValueChanged += dirtyPropHandler;
+            advancedPropertiesCheckBox.Checked += dirtyRoutedHandler;
+            advancedPropertiesCheckBox.Unchecked += dirtyRoutedHandler;
         }
 
 
         public void Reload()
         {
-            cssEditor.Text = BrowserSettings.Instance.SourceSettings.CSS;
-            templateEditor.Text = BrowserSettings.Instance.SourceSettings.Template;
+            CSSEditor.Text = BrowserSettings.Instance.SourceSettings.CSS;
+            TemplateEditor.Text = BrowserSettings.Instance.SourceSettings.Template;
             advancedSettings.SelectedObject = BrowserSettings.Instance.InstanceSettings;
+            advancedPropertiesCheckBox.IsChecked = BrowserSettings.Instance.SourceSettings.IsShowingAdvancedProperties;
         }
+
+        public TextEditor CSSEditor { get; private set; }
+        public TextEditor TemplateEditor { get; private set; }
+        public CheckBox AdvancedPropertiesCheckBox { get; private set; }
 
     }
 }

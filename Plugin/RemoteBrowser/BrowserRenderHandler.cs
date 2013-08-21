@@ -19,11 +19,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
     internal class BrowserRenderHandler : CefRenderHandler, IDisposable
     {
-        private SizeEventHandler sizeEventHandler;
-        private PaintEventHandler paintEventHandler;
-        private CreateTextureEventHandler createTextureEventHandler;
-        private DestroyTextureEventHandler destroyTextureEventHandler;
-
         private bool isDisposed;
 
         private Object texturesLock = new Object();
@@ -40,12 +35,12 @@ namespace CLRBrowserSourcePlugin.Browser
 
         protected override bool GetRootScreenRect(CefBrowser browser, ref CefRectangle rect)
         {
-            return sizeEventHandler(ref rect);
+            return SizeEvent(ref rect);
         }
 
         protected override bool GetViewRect(CefBrowser browser, ref CefRectangle rect)
         {
-            return sizeEventHandler(ref rect);
+            return SizeEvent(ref rect);
         }
 
         protected override bool GetScreenInfo(CefBrowser browser, CefScreenInfo screenInfo)
@@ -74,7 +69,7 @@ namespace CLRBrowserSourcePlugin.Browser
                 if (textures.Count <= currentTextureIndex)
                 {
                     IntPtr sharedTextureHandle;
-                    createTextureEventHandler((UInt32)width, (UInt32)height, out sharedTextureHandle);
+                    CreateTextureEvent((UInt32)width, (UInt32)height, out sharedTextureHandle);
 
                     // TODO : eventually switch to shared textures
                     //Texture texture = GraphicsSystem.Instance.CreateTextureFromSharedHandle((UInt32)width, (UInt32)height, sharedTextureHandle);
@@ -98,11 +93,8 @@ namespace CLRBrowserSourcePlugin.Browser
 
                 // loop the current texture index
                 currentTextureIndex = ++currentTextureIndex % textureCount;
-                paintEventHandler(textureToRender.Handle);
+                PaintEvent(textureToRender.Handle);
             }
-
-            
-
         }
 
         protected override void OnCursorChange(CefBrowser browser, IntPtr cursorHandle)
@@ -130,7 +122,7 @@ namespace CLRBrowserSourcePlugin.Browser
                 {
                     foreach (SharedTexture sharedTexture in textures)
                     {
-                        destroyTextureEventHandler(sharedTexture.Handle);
+                        DestroyTextureEvent(sharedTexture.Handle);
                     }
                     textures.Clear();
                 }
@@ -141,37 +133,9 @@ namespace CLRBrowserSourcePlugin.Browser
 
         #endregion
 
-        public SizeEventHandler SizeEvent
-        {
-            set
-            {
-                sizeEventHandler = value;
-            }
-        }
-
-
-        public PaintEventHandler PaintEvent
-        {
-            set
-            {
-                paintEventHandler = value;
-            }
-        }
-
-        public CreateTextureEventHandler CreateTextureEvent
-        {
-            set
-            {
-                createTextureEventHandler = value;
-            }
-        }
-
-        public DestroyTextureEventHandler DestroyTextureEvent
-        {
-            set
-            {
-                destroyTextureEventHandler = value;
-            }
-        }
+        public SizeEventHandler SizeEvent { private get; set; }
+        public PaintEventHandler PaintEvent { private get; set; }
+        public CreateTextureEventHandler CreateTextureEvent { private get; set; }
+        public DestroyTextureEventHandler DestroyTextureEvent { private get; set; }
     }
 }

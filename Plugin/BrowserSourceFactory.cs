@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using CLROBS;
+using CLRBrowserSourcePlugin.Shared;
 
 namespace CLRBrowserSourcePlugin
 {
@@ -23,8 +24,22 @@ namespace CLRBrowserSourcePlugin
 
         public override bool ShowConfiguration(XElement data)
         {
+            
             ConfigDialog dialog = new ConfigDialog(data);
-            return dialog.ShowDialog().GetValueOrDefault(false);
+            if (dialog.ShowDialog().GetValueOrDefault(false))
+            {
+                BrowserConfig config = new BrowserConfig();
+                config.Reload(data);
+
+                data.Parent.SetFloat("cx", (float)config.BrowserSourceSettings.Width);
+                data.Parent.SetFloat("cy", (float)config.BrowserSourceSettings.Height);
+
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }

@@ -23,7 +23,8 @@ namespace CLRBrowserSourcePlugin
 
         public override bool ShowConfiguration(XElement data)
         {
-            return true;
+            ConfigDialog dialog = new ConfigDialog(data);
+            return dialog.ShowDialog().GetValueOrDefault(false);
         }
     }
 }

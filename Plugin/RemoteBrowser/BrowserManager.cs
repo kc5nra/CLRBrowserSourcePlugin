@@ -53,7 +53,6 @@ namespace CLRBrowserSourcePlugin.Browser
             dispatcherThread.Start();
 
             dispatcherReadyEvent.WaitOne();
-
         }
 
         public void Start()

@@ -64,15 +64,14 @@ namespace CLRBrowserSourcePlugin
         override public void UpdateSettings()
         {
             config.Reload(configElement);
-            config.Populate();
             
             // unscaled w/h
-            Size.X = (float)config.Width;
-            Size.Y = (float)config.Height;
+            Size.X = (float)config.BrowserSourceSettings.Width;
+            Size.Y = (float)config.BrowserSourceSettings.Height;
 
             // initial scaled w/h
-            configElement.Parent.SetInt("cx", (Int32)config.Width);
-            configElement.Parent.SetInt("cy", (Int32)config.Height);
+            configElement.Parent.SetInt("cx", config.BrowserSourceSettings.Width);
+            configElement.Parent.SetInt("cy", config.BrowserSourceSettings.Height);
 
             if (browser != null)
             {
@@ -107,11 +106,17 @@ namespace CLRBrowserSourcePlugin
 
         public void DestroyTexture(IntPtr textureHandle)
         {
-            Texture textureToRemove;
-            if (textureMap.TryGetValue(textureHandle, out textureToRemove))
+            lock (textureLock)
             {
-                textureToRemove.Dispose();
-                textureMap.Remove(textureHandle);
+                Texture textureToRemove;
+                if (textureMap.TryGetValue(textureHandle, out textureToRemove))
+                {
+                    if (texture == textureToRemove) {
+                        texture = null;
+                    }
+                    textureToRemove.Dispose();
+                    textureMap.Remove(textureHandle);
+                }
             }
             
         }

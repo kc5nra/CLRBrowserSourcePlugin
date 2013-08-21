@@ -32,25 +32,61 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void UpdateSettings(BrowserConfig config)
         {
-            width = (int)config.Width;
-            height = (int)config.Height;
+            width = (int)config.BrowserSourceSettings.Width;
+            height = (int)config.BrowserSourceSettings.Height;
 
-            
             CefWindowInfo windowInfo = CefWindowInfo.Create();
             windowInfo.TransparentPainting = true;
             windowInfo.SetAsOffScreen(IntPtr.Zero);
-            windowInfo.Width = (int)config.Width;
-            windowInfo.Height = (int)config.Height;
+            windowInfo.Width = (int)width;
+            windowInfo.Height = (int)height;
 
-            CefBrowserSettings settings = new CefBrowserSettings {
-                FileAccessFromFileUrls = CefState.Enabled,
-                WebGL = CefState.Enabled,
-                WebSecurity = CefState.Disabled,
-                AcceleratedCompositing = CefState.Enabled
-                
+            BrowserInstanceSettings settings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
+            settings.MergeWith(config.BrowserInstanceSettings);
+            
+            CefBrowserSettings browserSettings = new CefBrowserSettings {
+                AcceleratedCompositing = settings.AcceleratedCompositing,
+                ApplicationCache = settings.ApplicationCache,
+                AuthorAndUserStyles = settings.AuthorAndUserStyles,
+                CaretBrowsing = settings.CaretBrowsing,
+                CursiveFontFamily = settings.CursiveFontFamily,
+                Databases = settings.Databases,
+                DefaultEncoding = settings.DefaultEncoding,
+                DefaultFixedFontSize = settings.DefaultFixedFontSize,
+                DefaultFontSize = settings.DefaultFontSize,
+                DeveloperTools = settings.DeveloperTools,
+                FantasyFontFamily = settings.FantasyFontFamily,
+                FileAccessFromFileUrls = settings.FileAccessFromFileUrls,
+                FixedFontFamily = settings.FixedFontFamily,
+                ImageLoading = settings.ImageLoading,
+                ImageShrinkStandaloneToFit = settings.ImageShrinkStandaloneToFit,
+                Java = settings.Java,
+                JavaScript = settings.JavaScript,
+                JavaScriptAccessClipboard = settings.JavaScriptAccessClipboard,
+                JavaScriptCloseWindows = settings.JavaScriptCloseWindows,
+                JavaScriptDomPaste = settings.JavaScriptDomPaste,
+                JavaScriptOpenWindows = settings.JavaScriptOpenWindows,
+                LocalStorage = settings.LocalStorage,
+                MinimumFontSize = settings.MinimumFontSize,
+                MinimumLogicalFontSize = settings.MinimumLogicalFontSize,
+                PageCache = settings.PageCache,
+                Plugins = settings.Plugins,
+                RemoteFonts = settings.RemoteFonts,
+                SansSerifFontFamily = settings.SansSerifFontFamily,
+                SerifFontFamily = settings.SerifFontFamily,
+                StandardFontFamily = settings.StandardFontFamily,
+                //TabToLinks = settings.TabToLinks,
+                //TextAreaResize = settings.TextAreaResize,
+                UniversalAccessFromFileUrls = settings.UniversalAccessFromFileUrls,
+                //UserStyleSheetLocation = settings.UserStyleSheetLocation,
+                WebGL = settings.WebGL,
+                WebSecurity = settings.WebSecurity,
             };
-                        
-            CefBrowserHost.CreateBrowser(windowInfo, browserClient, settings, config.Url);
+
+            BrowserManager.Instance.Dispatcher.InvokeAsync(() =>
+            {
+                CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, config.BrowserSourceSettings.Url);
+            });
             
         }
 
@@ -87,7 +123,6 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             if (disposing)
             {
-
                 if (browserHost != null)
                 {
                     browserHost.CloseBrowser();

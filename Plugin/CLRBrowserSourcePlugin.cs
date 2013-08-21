@@ -41,6 +41,7 @@ namespace CLRBrowserSourcePlugin
             Browser.BrowserManager.Instance.Start();
 
             API.Instance.AddImageSourceFactory(new BrowserSourceFactory());
+            API.Instance.AddSettingsPane(new BrowserSettingsPane());
             return true;
         }
 

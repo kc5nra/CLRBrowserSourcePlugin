@@ -150,7 +150,7 @@ namespace CLRBrowserSourcePlugin
             // Get the selected file name and display in a TextBox 
             if (result == true)
             {
-                url.Text = dlg.FileName;
+                url.Text = "local://absolute/" + dlg.FileName;
             }
 
         }

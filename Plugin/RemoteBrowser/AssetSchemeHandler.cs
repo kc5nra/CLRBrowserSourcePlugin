@@ -40,6 +40,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
         private BrowserConfig config;
 
         private Uri uri;
+        private String resolvedPath;
+
         private Stream inputStream;
 
         private bool isComplete;
@@ -89,8 +91,16 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             {
                 return false;
             }
+            try
+            {
+                uri = new Uri(request.Url);
+            }
+            catch (Exception e)
+            {
+                API.Instance.Log("AssetSchemeHandler::ProcessRequest: Unable to parse path {0}", request.Url);
+                return false;
+            }
 
-            uri = new Uri(request.Url);
             if (uri.Host.Equals("initial"))
             {
                 String resolvedTemplate = config.BrowserSourceSettings.Template;
@@ -102,9 +112,19 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             }
             else
             {
+                if (uri.LocalPath != null && uri.LocalPath.Length > 1)
+                {
+                    resolvedPath = uri.LocalPath.Substring(1);
+                }
+                else
+                {
+                    API.Instance.Log("AssetSchemeHandler::ProcessRequest: Unable to parse path {0}", request.Url);
+                    return false;
+                }
+
                 try
                 {
-                    inputStream = new FileStream(uri.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    inputStream = new FileStream(resolvedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 }
                 catch (Exception e)
                 {
@@ -114,7 +134,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                         inputStream = null;
                     }
 
-                    API.Instance.Log("AssetSchemeHandler::ProcessRequest of file {0} failed; {1}", uri.LocalPath, e.Message);
+                    API.Instance.Log("AssetSchemeHandler::ProcessRequest of file {0} failed; {1}", resolvedPath, e.Message);
                     callback.Cancel();
                     return false;
                 }
@@ -164,7 +184,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             }
             catch (Exception e)
             {
-                API.Instance.Log("AssetSchemeHandler::ReadResponse of file {0} failed; {1}", uri.LocalPath, e.Message);
+                API.Instance.Log("AssetSchemeHandler::ReadResponse of file {0} failed; {1}", resolvedPath, e.Message);
                 if (inputStream != null)
                 {
                     inputStream.Dispose();

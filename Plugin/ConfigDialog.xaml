@@ -67,7 +67,7 @@
                                         <ColumnDefinition Width="51*"/>
                                         <ColumnDefinition Width="107*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Slider x:Name="opacitySlider" Margin="10,0,0,32" HorizontalAlignment="Left" Width="134" Height="24" VerticalAlignment="Bottom" Maximum="1" Value="1" />
+                                    <Slider x:Name="opacitySlider" Margin="10,0,0,21" HorizontalAlignment="Left" Width="133" Height="35" VerticalAlignment="Bottom" Maximum="1" Value="1" TickFrequency="0.05" LargeChange="0.2" SmallChange="0.05" TickPlacement="Both" />
                                     <Label Content="Opacity" Margin="10,10,10,0" VerticalAlignment="Top"/>
                                     <Label Content="Muf Smells" Margin="10" Grid.Column="1" FontFamily="Comic Sans MS" FontSize="48" HorizontalAlignment="Center"/>
                                     <Rectangle x:Name="opacityRectangle" Margin="10,9,10,11" Grid.Column="1" Fill="Black" RadiusX="5" RadiusY="5" StrokeDashCap="Round" StrokeThickness="5" Opacity="{Binding ElementName=opacitySlider, Path=Value}"/>

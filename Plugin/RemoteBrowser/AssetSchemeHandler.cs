@@ -40,7 +40,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
         private BrowserConfig config;
 
         private Uri uri;
-        private Stream localFileStreamReader;
+        private Stream inputStream;
 
         private bool isComplete;
         private long length;
@@ -91,23 +91,36 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             }
 
             uri = new Uri(request.Url);
-
-            try
+            if (uri.Host.Equals("initial"))
             {
-                localFileStreamReader = new FileStream(uri.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                length = remaining = localFileStreamReader.Length;
+                String resolvedTemplate = config.BrowserSourceSettings.Template;
+                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", config.BrowserSourceSettings.Url);
+                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
+                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
+                inputStream = new MemoryStream(Encoding.UTF8.GetBytes(resolvedTemplate));
+                
             }
-            catch (Exception e)
+            else
             {
-                if (localFileStreamReader != null)
+                try
                 {
-                    localFileStreamReader.Dispose();
-                    localFileStreamReader = null;
+                    inputStream = new FileStream(uri.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 }
-                API.Instance.Log("AssetSchemeHandler::ProcessRequest of file {0} failed; {1}", uri.LocalPath, e.Message);
-                callback.Cancel();
-                return false;
+                catch (Exception e)
+                {
+                    if (inputStream != null)
+                    {
+                        inputStream.Dispose();
+                        inputStream = null;
+                    }
+
+                    API.Instance.Log("AssetSchemeHandler::ProcessRequest of file {0} failed; {1}", uri.LocalPath, e.Message);
+                    callback.Cancel();
+                    return false;
+                }
             }
+
+            length = remaining = inputStream.Length;
 
             callback.Continue();
             return true;
@@ -115,12 +128,12 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
 
         protected override bool ReadResponse(Stream response, int bytesToRead, out int bytesRead, CefCallback callback)
         {
-            if (response == null || localFileStreamReader == null)
+            if (response == null || inputStream == null)
             {
-                if (localFileStreamReader != null)
+                if (inputStream != null)
                 {
-                    localFileStreamReader.Dispose();
-                    localFileStreamReader = null;
+                    inputStream.Dispose();
+                    inputStream = null;
                 }
                 bytesRead = 0;
                 return false;
@@ -134,7 +147,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                     return false;
                 }
 
-                bytesRead = StreamUtils.CopyStream(localFileStreamReader, response, bytesToRead);
+                bytesRead = StreamUtils.CopyStream(inputStream, response, bytesToRead);
                 remaining -= bytesRead;
 
 
@@ -143,8 +156,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 if (remaining == 0)
                 {
                     isComplete = true;
-                    localFileStreamReader.Dispose();
-                    localFileStreamReader = null;
+                    inputStream.Dispose();
+                    inputStream = null;
                 }
 
                 return true;
@@ -152,10 +165,10 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             catch (Exception e)
             {
                 API.Instance.Log("AssetSchemeHandler::ReadResponse of file {0} failed; {1}", uri.LocalPath, e.Message);
-                if (localFileStreamReader != null)
+                if (inputStream != null)
                 {
-                    localFileStreamReader.Dispose();
-                    localFileStreamReader = null;
+                    inputStream.Dispose();
+                    inputStream = null;
                 }
                 bytesRead = 0;
                 callback.Cancel();
@@ -165,10 +178,10 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
 
         protected override void Cancel()
         {
-            if (localFileStreamReader != null)
+            if (inputStream != null)
             {
-                localFileStreamReader.Close();
-                localFileStreamReader = null;
+                inputStream.Close();
+                inputStream = null;
             }
         }
 

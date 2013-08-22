@@ -106,9 +106,7 @@ namespace CLRBrowserSourcePlugin.Browser
                 resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
                 resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
 
-                String base64EncodedTemplateUri = "data:text/html;charset=utf-8;base64,";
-                String base64EncodedTemplate = Convert.ToBase64String(Encoding.UTF8.GetBytes(resolvedTemplate));
-                url = base64EncodedTemplateUri + base64EncodedTemplate;
+                url = "local://initial/";
             }
 
             // must be sync invoke because wrapper can be destroyed before it is run

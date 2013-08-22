@@ -120,6 +120,12 @@ namespace CLRBrowserSourcePlugin
             
         }
 
+        public override void Preprocess()
+        {
+            // only does something if browser is single threaded event loop
+            BrowserManager.Instance.Update();
+        }
+
         override public void Render(float x, float y, float width, float height)
         {
             lock (textureLock)

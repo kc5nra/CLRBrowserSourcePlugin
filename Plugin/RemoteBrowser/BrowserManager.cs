@@ -11,6 +11,7 @@ using CLRBrowserSourcePlugin.Shared;
 
 using Xilium.CefGlue;
 using System.Windows.Threading;
+using CLRBrowserSourcePlugin.RemoteBrowser;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
@@ -34,15 +35,19 @@ namespace CLRBrowserSourcePlugin.Browser
 
         #endregion
 
-        private IDictionary<String, BrowserSource> browserSources;
         private Thread dispatcherThread;
         private Object browserTasksLock = new Object();
         private Dispatcher dispatcher;
 
+        private Object browserMapLock = new Object();
+        private Dictionary<int, BrowserConfig> browserMap;
+
+        private bool isMultiThreadedMessageLoop;
+
         public BrowserManager()
         {
-            browserSources = new Dictionary<String, BrowserSource>();
-            
+            browserMap = new Dictionary<int, BrowserConfig>();
+
             ManualResetEvent dispatcherReadyEvent = new ManualResetEvent(false);
             dispatcherThread = new Thread(new ThreadStart(() =>
             {
@@ -61,19 +66,39 @@ namespace CLRBrowserSourcePlugin.Browser
             {
                 CefRuntime.Load();
                 CefMainArgs cefMainArgs = new CefMainArgs(IntPtr.Zero, new String[0]);
+                BrowserRuntimeSettings settings = BrowserSettings.Instance.RuntimeSettings;
+
+                isMultiThreadedMessageLoop = settings.MultiThreadedMessageLoop;
+
                 CefSettings cefSettings = new CefSettings
                 {
-                    SingleProcess = false,
-                    MultiThreadedMessageLoop = true,
-                    RemoteDebuggingPort = 1337,
-                    LogSeverity = CefLogSeverity.Verbose,
-                    LogFile = "cef.log",
                     BrowserSubprocessPath = @"plugins\CLRHostPlugin\CLRBrowserSourcePlugin\CLRBrowserSourceClient.exe",
+                    CachePath = settings.CachePath,
+                    CommandLineArgsDisabled = settings.CommandLineArgsDisabled,
+                    IgnoreCertificateErrors = settings.IgnoreCertificateErrors,
+                    JavaScriptFlags = settings.JavaScriptFlags,
+                    Locale = settings.Locale,
+                    LocalesDirPath = settings.LocalesDirPath,
+                    LogFile = settings.LogFile,
+                    LogSeverity = settings.LogSeverity,
+                    MultiThreadedMessageLoop = settings.MultiThreadedMessageLoop,
+                    PersistSessionCookies = settings.PersistSessionCookies,
+                    ProductVersion = settings.ProductVersion,
+                    ReleaseDCheckEnabled = settings.ReleaseDCheckEnabled,
+                    RemoteDebuggingPort = settings.RemoteDebuggingPort,
+                    ResourcesDirPath = settings.ResourcesDirPath,
+                    SingleProcess = settings.SingleProcess,
+                    UncaughtExceptionStackSize = settings.UncaughtExceptionStackSize
                 };
 
-                CefRuntime.ExecuteProcess(cefMainArgs, null);
-                CefRuntime.Initialize(cefMainArgs, cefSettings, null);
+                BrowserApp browserApp = new BrowserApp(settings.CommandLineArgsDisabled ? new String[0] : settings.CommandLineArguments);
 
+                CefRuntime.ExecuteProcess(cefMainArgs, browserApp);
+                CefRuntime.Initialize(cefMainArgs, cefSettings, browserApp);
+
+                CefRuntime.RefreshWebPlugins();
+                
+                CefRuntime.RegisterSchemeHandlerFactory("local", null, new AssetSchemeHandlerFactory());
             });
         }
 
@@ -81,6 +106,7 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             dispatcher.Invoke(() =>
             {
+                CefRuntime.ClearSchemeHandlerFactories();
                 CefRuntime.Shutdown();
             });
 
@@ -91,11 +117,47 @@ namespace CLRBrowserSourcePlugin.Browser
             }
         }
 
+        public void Update()
+        {
+            if (!isMultiThreadedMessageLoop)
+            {
+                dispatcher.InvokeAsync(() =>
+                {
+                    CefRuntime.DoMessageLoopWork();
+                });
+            }
+        }
+
+
         public Dispatcher Dispatcher
         {
             get
             {
                 return dispatcher;
+            }
+        }
+
+        public void RegisterBrowser(int id, BrowserConfig config) 
+        {
+            lock (browserMapLock)
+            {
+                browserMap.Add(id, config);
+            }
+        }
+
+        public bool TryGetBrowserConfig(int id, out BrowserConfig config)
+        {
+            lock (browserMapLock)
+            {
+                return browserMap.TryGetValue(id, out config);
+            }
+        }
+
+        public void UnregisterBrowser(int id)
+        {
+            lock (browserMapLock)
+            {
+                browserMap.Remove(id);
             }
         }
     }

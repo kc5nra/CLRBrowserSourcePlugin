@@ -79,6 +79,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BrowserApp.cs" />
     <Compile Include="CLRBrowserSourceClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -90,7 +91,7 @@
       <Project>{18746141-1223-4fdf-bd6e-e7536ccade4f}</Project>
       <Name>CLRHost.Interop %28Visual Studio 2010%29</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\xilium.cefglue\CefGlue\CefGlue.csproj">
+    <ProjectReference Include="..\..\xilium.cefglue_chrome29\CefGlue\CefGlue.csproj">
       <Project>{703ff300-34b9-48d4-a5d6-e741f48d5f95}</Project>
       <Name>CefGlue</Name>
     </ProjectReference>

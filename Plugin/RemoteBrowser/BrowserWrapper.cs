@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using CLRBrowserSourcePlugin.Shared;
 
 using Xilium.CefGlue;
+using System.Diagnostics;
+using CLROBS;
+using System.Threading;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
@@ -17,9 +20,12 @@ namespace CLRBrowserSourcePlugin.Browser
         private CefBrowser browser;
         private CefBrowserHost browserHost;
 
+        private BrowserConfig config;
+
         private int width;
         private int height;
 
+        bool isStarted = false;
         bool isClosed = false;
 
         public BrowserWrapper(BrowserSource browserSource)
@@ -35,6 +41,8 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void UpdateSettings(BrowserConfig config)
         {
+            this.config = config;
+
             width = (int)config.BrowserSourceSettings.Width;
             height = (int)config.BrowserSourceSettings.Height;
 
@@ -89,9 +97,23 @@ namespace CLRBrowserSourcePlugin.Browser
                 WebSecurity = settings.WebSecurity,
             };
 
+            String url = config.BrowserSourceSettings.Url;
+
+            if (config.BrowserSourceSettings.IsApplyingTemplate)
+            {
+                String resolvedTemplate = config.BrowserSourceSettings.Template;
+                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", config.BrowserSourceSettings.Url);
+                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
+                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
+
+                String base64EncodedTemplateUri = "data:text/html;charset=utf-8;base64,";
+                String base64EncodedTemplate = Convert.ToBase64String(Encoding.UTF8.GetBytes(resolvedTemplate));
+                url = base64EncodedTemplateUri + base64EncodedTemplate;
+            }
+
             BrowserManager.Instance.Dispatcher.InvokeAsync(() =>
             {
-                CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, config.BrowserSourceSettings.Url);
+                CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, url);
             });
             
         }
@@ -110,6 +132,9 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             this.browser = browser;
             this.browserHost = browser.GetHost();
+
+            BrowserManager.Instance.RegisterBrowser(browser.Identifier, config);
+            isStarted = true;
         }
 
         public void OnBeforeClose(CefBrowser browser)
@@ -134,17 +159,45 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             if (disposing)
             {
+                Stopwatch stopwatch = new Stopwatch();
+
+                stopwatch.Start();
+                while (!isStarted)
+                {
+                    if (stopwatch.ElapsedMilliseconds > 100)
+                    {
+                        API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to start (required for safe disposal); Attempting to continue");
+                        break;
+                    }
+                    Thread.Sleep(10);
+                }
+                stopwatch.Stop();
+                stopwatch.Reset();
+
                 if (browserHost != null)
                 {
                     browserHost.CloseBrowser();
                     // OnBeforeClose must be called before we start disposing
-                    while (!isClosed) ;
+                    stopwatch.Start();
+                    while (!isClosed)
+                    {
+                        if (stopwatch.ElapsedMilliseconds > 100)
+                        {
+                            API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to close (required for safe disposal); Attempting unsafe kill");
+                            break;
+                        }
+                        Thread.Sleep(10);
+                    }
+                    stopwatch.Stop();
+
+                    browserHost.ParentWindowWillClose();
                     browserHost.Dispose();
                     browserHost = null;
                 }
-
+                
                 if (browser != null)
                 {
+                    BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
                     browser.Dispose();
                     browser = null;
                 }

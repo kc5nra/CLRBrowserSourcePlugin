@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.Shared;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -30,7 +31,7 @@ namespace CLRBrowserSourceClient
             LoadLibrary(Path.Combine(libraryDirectory, "libcef.dll"));
 
             CefMainArgs mainArgs = new CefMainArgs(args);
-            return CefRuntime.ExecuteProcess(mainArgs, null);
+            return CefRuntime.ExecuteProcess(mainArgs, new BrowserApp());
         }
     }
 }

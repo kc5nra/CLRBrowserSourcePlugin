@@ -287,10 +287,12 @@ namespace CLRBrowserSourcePlugin.Shared
                 + "    </object>\r\n"
                 + "  </body>\r\n"
                 + "</html>\r\n";
+            IsApplyingTemplate = false;
             IsShowingAdvancedProperties = false;
             Opacity = 1.0f;
         }
 
+        public bool IsApplyingTemplate { get; set; }
         public bool IsShowingAdvancedProperties { get; set; }
         public String Url { get; set; }
         public int Width { get; set; }
@@ -304,8 +306,18 @@ namespace CLRBrowserSourcePlugin.Shared
     public class BrowserInstanceSettings : AbstractSettings
     {
         // The below values map to WebPreferences settings.
+        public BrowserInstanceSettings()
+        {
+            PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(this);
+            for (int i = 0; i < properties.Count; i++)
+            {
+                DefaultValueAttribute attr = properties[i].Attributes[typeof(DefaultValueAttribute)] as DefaultValueAttribute;
+                if (attr == null) continue;
+                properties[i].SetValue(this, attr.Value);
+            }
+        }
 
-        #region Font Settings
+        #region Font
 
         [DefaultValue(null)]
         [Category("Fonts")]
@@ -368,7 +380,7 @@ namespace CLRBrowserSourcePlugin.Shared
 
         #endregion
 
-        #region Misc Settings
+        #region Misc
         /// <summary>
         /// Default encoding for Web content. If empty "ISO-8859-1" will be used. Also
         /// configurable using the "default-encoding" command-line switch.
@@ -393,6 +405,12 @@ namespace CLRBrowserSourcePlugin.Shared
         //public CefState TabToLinks { get; set; }
 
         /// <summary>
+        /// Controls whether text areas can be resized. Also configurable using the
+        /// "disable-text-area-resize" command-line switch.
+        /// </summary>
+        //public CefState TextAreaResize { get { return CefState.Default; } }
+
+        /// <summary>
         /// Controls whether style sheets can be used. Also configurable using the
         /// "disable-author-and-user-styles" command-line switch.
         /// </summary>
@@ -412,7 +430,7 @@ namespace CLRBrowserSourcePlugin.Shared
 
         #endregion
 
-        #region JavaScript Settings
+        #region JavaScript
 
         /// <summary>
         /// Controls whether JavaScript can be executed. Also configurable using the
@@ -475,7 +493,7 @@ namespace CLRBrowserSourcePlugin.Shared
 
         #endregion
 
-        #region Plugin Settings
+        #region Plugin
 
         /// <summary>
         /// Controls whether any plugins will be loaded. Also configurable using the
@@ -554,13 +572,6 @@ namespace CLRBrowserSourcePlugin.Shared
 
         #endregion
 
-
-        /// <summary>
-        /// Controls whether text areas can be resized. Also configurable using the
-        /// "disable-text-area-resize" command-line switch.
-        /// </summary>
-        //public CefState TextAreaResize { get { return CefState.Default; } }
-
         #region Storage
 
         /// <summary>
@@ -635,6 +646,256 @@ namespace CLRBrowserSourcePlugin.Shared
     [Serializable]
     public class BrowserRuntimeSettings
     {
+
+        public BrowserRuntimeSettings()
+        {
+            PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(this);
+            for(int i = 0; i < properties.Count; i++)
+            {
+                DefaultValueAttribute attr = properties[i].Attributes[typeof(DefaultValueAttribute)] as DefaultValueAttribute;
+                if (attr == null) continue;
+                properties[i].SetValue(this, attr.Value);
+            }
+
+            // read only
+            MultiThreadedMessageLoop = true;
+        }
+        #region Core Settings
+
+        /// <summary>
+        /// Set to <c>true</c> to use a single process for the browser and renderer. This
+        /// run mode is not officially supported by Chromium and is less stable than
+        /// the multi-process default. Also configurable using the "single-process"
+        /// command-line switch.
+        /// </summary>
+        [DefaultValue(false)]
+        [Category("Core")]
+        [Description("Set to true to use a single process for the browser and renderer. This run mode is not officially supported by Chromium and is less stable than the multi-process default.")]
+        public bool SingleProcess { get; set; }
+
+        ///// <summary>
+        ///// Set to <c>true</c> to have the browser process message loop run in a separate
+        ///// thread. If <c>false</c> than the CefDoMessageLoopWork() function must be
+        ///// called from your application message loop.
+        ///// </summary>
+        //public bool MultiThreadedMessageLoop { get; }
+
+        [DefaultValue(new String[] { "--no-proxy-server" })]
+        [Category("Core")]
+        [Description("Chrome command line arguments. (Advanced!)")]
+        public String[] CommandLineArguments { get; set; }
+
+        /// <summary>
+        /// Set to <c>true</c> to disable configuration of browser process features using
+        /// standard CEF and Chromium command-line arguments. Configuration can still
+        /// be specified using CEF data structures or via the
+        /// CefApp::OnBeforeCommandLineProcessing() method.
+        /// </summary>
+        [DefaultValue(false)]
+        [Category("Core")]
+        [Description("Set to true to disable configuration of browser process features using standard CEF and Chromium command-line arguments.")]
+        public bool CommandLineArgsDisabled { get; set; }
+
+        /// <summary>
+        /// Set to <c>true</c> to have the browser process message loop run in a separate
+        /// thread. If <c>false</c> than the CefDoMessageLoopWork() function must be
+        /// called from your application message loop.
+        /// </summary>
+        [DefaultValue(true)]
+        [Category("Core")]
+        [Description("Set to true to have the browser process message loop run in a separate thread.")]
+        [ReadOnly(true)]
+        public bool MultiThreadedMessageLoop { get; set; }
+
+        #endregion
+
+        #region Resources
+
+        /// <summary>
+        /// The location where cache data will be stored on disk. If empty an in-memory
+        /// cache will be used. HTML5 databases such as localStorage will only persist
+        /// across sessions if a cache path is specified.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Resources")]
+        [Description("The location where cache data will be stored on disk. If empty an in-memory cache will be used. HTML5 databases such as localStorage will only persist across sessions if a cache path is specified.")]
+        public string CachePath { get; set; }
+
+        /// <summary>
+        /// To persist session cookies (cookies without an expiry date or validity
+        /// interval) by default when using the global cookie manager set this value to
+        /// true. Session cookies are generally intended to be transient and most Web
+        /// browsers do not persist them. A |cache_path| value must also be specified to
+        /// enable this feature. Also configurable using the "persist-session-cookies"
+        /// command-line switch.
+        /// </summary>
+        [DefaultValue(false)]
+        [Category("Resources")]
+        [Description("To persist session cookies (cookies without an expiry date or validity interval) by default when using the global cookie manager set this value to true. A CachePath value must also be specified to enable this feature.")]
+        public bool PersistSessionCookies { get; set; }
+
+        /// <summary>
+        /// The fully qualified path for the resources directory. If this value is
+        /// empty the cef.pak and/or devtools_resources.pak files must be located in
+        /// the module directory on Windows/Linux or the app bundle Resources directory
+        /// on Mac OS X. Also configurable using the "resources-dir-path" command-line
+        /// switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Resources")]
+        [Description("The fully qualified path for the resources directory. If this value is empty the cef.pak and/or devtools_resources.pak files must be located in the module directory.")]
+        public string ResourcesDirPath { get; set; }
+
+        
+
+        #endregion
+
+        #region Locale
+
+        /// <summary>
+        /// The locale string that will be passed to WebKit. If empty the default
+        /// locale of "en-US" will be used. This value is ignored on Linux where locale
+        /// is determined using environment variable parsing with the precedence order:
+        /// LANGUAGE, LC_ALL, LC_MESSAGES and LANG. Also configurable using the "lang"
+        /// command-line switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Locale")]
+        [Description("The locale string that will be passed to WebKit. If empty the default locale of 'en-US' will be used.")]
+        public string Locale { get; set; }
+
+        /// <summary>
+        /// The fully qualified path for the locales directory. If this value is empty
+        /// the locales directory must be located in the module directory. This value
+        /// is ignored on Mac OS X where pack files are always loaded from the app
+        /// bundle resource directory. Also configurable using the "locales-dir-path"
+        /// command-line switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Locale")]
+        [Description("The fully qualified path for the locales directory. If this value is empty the locales directory must be located in the module directory.")]
+        public string LocalesDirPath { get; set; }
+
+
+        #endregion
+
+        #region Behavior
+
+        /// <summary>
+        /// Value that will be returned as the User-Agent HTTP header. If empty the
+        /// default User-Agent string will be used. Also configurable using the
+        /// "user-agent" command-line switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Behavior")]
+        [Description("Value that will be returned as the User-Agent HTTP header. If empty the default User-Agent string will be used.")]
+        public string UserAgent { get; set; }
+
+        /// <summary>
+        /// Value that will be inserted as the product portion of the default
+        /// User-Agent string. If empty the Chromium product version will be used. If
+        /// |userAgent| is specified this value will be ignored. Also configurable
+        /// using the "product-version" command-line switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Behavior")]
+        [Description("Value that will be inserted as the product portion of the default User-Agent string. If empty the Chromium product version will be used. If UserAgent is specified this value will be ignored.")]
+        public string ProductVersion { get; set; }
+
+        #endregion
+
+        #region Security
+
+        /// <summary>
+        /// Set to true (1) to ignore errors related to invalid SSL certificates.
+        /// Enabling this setting can lead to potential security vulnerabilities like
+        /// "man in the middle" attacks. Applications that load content from the
+        /// internet should not enable this setting. Also configurable using the
+        /// "ignore-certificate-errors" command-line switch.
+        /// </summary>
+        [DefaultValue(false)]
+        [Category("Security")]
+        [Description("Set to true (1) to ignore errors related to invalid SSL certificates. Enabling this setting can lead to potential security vulnerabilities like 'man in the middle' attacks. Applications that load content from the internet should not enable this setting.")]
+        public bool IgnoreCertificateErrors { get; set; }
+
+        #endregion
+
+        #region Logging
+
+        /// <summary>
+        /// The directory and file name to use for the debug log. If empty, the
+        /// default name of "debug.log" will be used and the file will be written
+        /// to the application directory. Also configurable using the "log-file"
+        /// command-line switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("Logging")]
+        [Description("The directory and file name to use for the debug log. If empty, the default name of 'debug.log' will be used and the file will be written to the application directory.")]
+        public string LogFile { get; set; }
+
+        /// <summary>
+        /// The log severity. Only messages of this severity level or higher will be
+        /// logged. Also configurable using the "log-severity" command-line switch with
+        /// a value of "verbose", "info", "warning", "error", "error-report" or
+        /// "disable".
+        /// </summary>
+        [DefaultValue(CefLogSeverity.Default)]
+        [Category("Logging")]
+        [Description("The log severity. Only messages of this severity level or higher will be logged. Verbose < Info < Warning < Error < ErrorReport < Disable")]
+        public CefLogSeverity LogSeverity { get; set; }
+
+        #endregion
+
+        #region Debugging
+
+        /// <summary>
+        /// Enable DCHECK in release mode to ease debugging.  Also configurable using the
+        /// "enable-release-dcheck" command-line switch.
+        /// </summary>
+        [DefaultValue(false)]
+        [Category("Debugging")]
+        [Description("Enable DCHECK in release mode to ease debugging.")]
+        public bool ReleaseDCheckEnabled { get; set; }
+
+        /// <summary>
+        /// Set to a value between 1024 and 65535 to enable remote debugging on the
+        /// specified port. For example, if 8080 is specified the remote debugging URL
+        /// will be http://localhost:8080. CEF can be remotely debugged from any CEF or
+        /// Chrome browser window. Also configurable using the "remote-debugging-port"
+        /// command-line switch.
+        /// </summary>
+        [DefaultValue(0)]
+        [Category("Debugging")]
+        [Description("Set to a value between 1024 and 65535 to enable remote debugging on the specified port. If 8080 the debugging URL will be http://localhost:8080. Use chrome to view this site.")]
+        public int RemoteDebuggingPort { get; set; }
+
+        /// <summary>
+        /// The number of stack trace frames to capture for uncaught exceptions.
+        /// Specify a positive value to enable the CefV8ContextHandler::
+        /// OnUncaughtException() callback. Specify 0 (default value) and
+        /// OnUncaughtException() will not be called. Also configurable using the
+        /// "uncaught-exception-stack-size" command-line switch.
+        /// </summary>
+        [DefaultValue(0)]
+        [Category("Debugging")]
+        [Description("The number of stack trace frames to capture for uncaught exceptions. Specify a positive value to enable the OnUncaughtException() callback. Specify 0 (default value) to disable.")]
+        public int UncaughtExceptionStackSize { get; set; }
+
+        #endregion
+
+        #region JavaScript
+
+        /// <summary>
+        /// Custom flags that will be used when initializing the V8 JavaScript engine.
+        /// The consequences of using custom flags may not be well tested. Also
+        /// configurable using the "js-flags" command-line switch.
+        /// </summary>
+        [DefaultValue(null)]
+        [Category("JavaScript")]
+        [Description("Custom flags that will be used when initializing the V8 JavaScript engine. The consequences of using custom flags may not be well tested.")]
+        public string JavaScriptFlags { get; set; }
+
+        #endregion
 
     }
 }

@@ -16,6 +16,19 @@
                     <CheckBox x:Name="advancedPropertiesCheckBox" Content="Show Advanced Tab by default on new sources" Margin="10,0,10,424" Height="16" VerticalAlignment="Bottom" Background="#FFF5CFCF" BorderBrush="#FFD30000"/>
                 </Grid>
             </TabItem>
+            <TabItem Header="Runtime">
+                <Grid Margin="0,0,0,40">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="125*"/>
+                        <RowDefinition Height="22*"/>
+                    </Grid.RowDefinitions>
+                    <WindowsFormsHost HorizontalAlignment="Left" Height="355" Margin="10,10,0,0" VerticalAlignment="Top" Width="584" Grid.RowSpan="2">
+                        <WinForms:PropertyGrid x:Name="runtimeSettingsPropertyGrid"/>
+                    </WindowsFormsHost>
+                    <Label Content="Any changes will only apply after a restart!" HorizontalAlignment="Left" Margin="10,39,0,-24" Grid.Row="1" RenderTransformOrigin="0.211,0.269" Height="46" Width="584" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" HorizontalContentAlignment="Center" FontFamily="Segoe UI Semibold" UseLayoutRounding="False" VerticalAlignment="Top" VerticalContentAlignment="Center" FontSize="16" BorderBrush="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" BorderThickness="3"/>
+
+                </Grid>
+            </TabItem>
             <TabItem Header="Instance">
                 <Grid Margin="0,0,0,40">
                     <Grid.RowDefinitions>
@@ -23,7 +36,7 @@
                         <RowDefinition Height="22*"/>
                     </Grid.RowDefinitions>
                     <WindowsFormsHost HorizontalAlignment="Left" Height="355" Margin="10,10,0,0" VerticalAlignment="Top" Width="584" Grid.RowSpan="2">
-                        <WinForms:PropertyGrid x:Name="advancedSettings"/>
+                        <WinForms:PropertyGrid x:Name="instanceSettingsPropertyGrid"/>
                     </WindowsFormsHost>
                     <Label Content="All browser sources inherit their properties from these instance options.  &#xA;You can set per-browser properties in the source configuration." HorizontalAlignment="Left" Margin="10,21,0,-6" Grid.Row="1" VerticalAlignment="Top" RenderTransformOrigin="0.211,0.269" Height="46" Width="576"/>
 

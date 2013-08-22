@@ -75,7 +75,8 @@ namespace CLRBrowserSourcePlugin
 
             CSSEditor.TextChanged += dirtyEventHandler;
             TemplateEditor.TextChanged += dirtyEventHandler;
-            advancedSettings.PropertyValueChanged += dirtyPropHandler;
+            runtimeSettingsPropertyGrid.PropertyValueChanged += dirtyPropHandler;
+            instanceSettingsPropertyGrid.PropertyValueChanged += dirtyPropHandler;
             advancedPropertiesCheckBox.Checked += dirtyRoutedHandler;
             advancedPropertiesCheckBox.Unchecked += dirtyRoutedHandler;
         }
@@ -85,7 +86,9 @@ namespace CLRBrowserSourcePlugin
         {
             CSSEditor.Text = BrowserSettings.Instance.SourceSettings.CSS;
             TemplateEditor.Text = BrowserSettings.Instance.SourceSettings.Template;
-            advancedSettings.SelectedObject = BrowserSettings.Instance.InstanceSettings;
+            runtimeSettingsPropertyGrid.SelectedObject = BrowserSettings.Instance.RuntimeSettings;            
+            instanceSettingsPropertyGrid.SelectedObject = BrowserSettings.Instance.InstanceSettings;
+            
             advancedPropertiesCheckBox.IsChecked = BrowserSettings.Instance.SourceSettings.IsShowingAdvancedProperties;
         }
 

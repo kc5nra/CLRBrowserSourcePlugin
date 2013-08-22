@@ -57,6 +57,8 @@ namespace CLRBrowserSourcePlugin
 
             advancedPropertiesCheckBox.IsChecked = config.BrowserSourceSettings.IsShowingAdvancedProperties;
             SetTabVisibility(advancedTab, config.BrowserSourceSettings.IsShowingAdvancedProperties);
+            applyTemplateCheckBox.IsChecked = config.BrowserSourceSettings.IsApplyingTemplate;
+            SetTabVisibility(templateTab, config.BrowserSourceSettings.IsApplyingTemplate);
 
             url.Text = config.BrowserSourceSettings.Url;
             cssEditor.Text = config.BrowserSourceSettings.CSS;
@@ -95,6 +97,7 @@ namespace CLRBrowserSourcePlugin
             config.BrowserSourceSettings.CSS = cssEditor.Text;
             config.BrowserSourceSettings.Template = templateEditor.Text;
             config.BrowserSourceSettings.IsShowingAdvancedProperties = advancedPropertiesCheckBox.IsChecked.GetValueOrDefault();
+            config.BrowserSourceSettings.IsApplyingTemplate = applyTemplateCheckBox.IsChecked.GetValueOrDefault();
             config.BrowserSourceSettings.Opacity = opacitySlider.Value;
             DialogResult = config.Save(dataElement);
             
@@ -125,6 +128,12 @@ namespace CLRBrowserSourcePlugin
         {
             CheckBox cb = sender as CheckBox;
             SetTabVisibility(advancedTab, cb.IsChecked.GetValueOrDefault());
+        }
+
+        private void applyTemplateCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            CheckBox cb = sender as CheckBox;
+            SetTabVisibility(templateTab, cb.IsChecked.GetValueOrDefault());
         }
        
     }

@@ -15,9 +15,9 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
     {
         protected override CefResourceHandler Create(CefBrowser browser, CefFrame frame, string schemeName, CefRequest request)
         {
-            if (browser == null)
+            if (browser == null || request == null)
             {
-                API.Instance.Log("Browser null - Frame null: requested with null browser (rapidly opening and closing?)");
+                API.Instance.Log("Browser null - Frame null: requested with null browser or request (rapidly opening and closing?)");
                 return null;
             }
 

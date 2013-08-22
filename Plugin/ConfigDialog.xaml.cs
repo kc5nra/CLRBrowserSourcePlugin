@@ -19,6 +19,7 @@ using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using System.Web.Script.Serialization;
 using CLRBrowserSourcePlugin.Shared;
+using Microsoft.Win32;
 
 namespace CLRBrowserSourcePlugin
 {
@@ -134,6 +135,24 @@ namespace CLRBrowserSourcePlugin
         {
             CheckBox cb = sender as CheckBox;
             SetTabVisibility(templateTab, cb.IsChecked.GetValueOrDefault());
+        }
+
+        private void browseButton_Click_1(object sender, RoutedEventArgs e)
+        {
+            // Create OpenFileDialog 
+            OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+
+            dlg.DefaultExt = "*.*";
+            dlg.Filter = "All Files (*.*)|*.*"; 
+            
+            Nullable<bool> result = dlg.ShowDialog();
+
+            // Get the selected file name and display in a TextBox 
+            if (result == true)
+            {
+                url.Text = dlg.FileName;
+            }
+
         }
        
     }

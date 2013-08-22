@@ -111,7 +111,8 @@ namespace CLRBrowserSourcePlugin.Browser
                 url = base64EncodedTemplateUri + base64EncodedTemplate;
             }
 
-            BrowserManager.Instance.Dispatcher.InvokeAsync(() =>
+            // must be sync invoke because wrapper can be destroyed before it is run
+            BrowserManager.Instance.Dispatcher.Invoke(() =>
             {
                 CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, url);
             });
@@ -130,11 +131,14 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void AfterCreated(CefBrowser browser)
         {
-            this.browser = browser;
-            this.browserHost = browser.GetHost();
+            if (browser != null)
+            {
+                this.browser = browser;
+                this.browserHost = browser.GetHost();
 
-            BrowserManager.Instance.RegisterBrowser(browser.Identifier, config);
-            isStarted = true;
+                BrowserManager.Instance.RegisterBrowser(browser.Identifier, config);
+                isStarted = true;
+            }
         }
 
         public void OnBeforeClose(CefBrowser browser)
@@ -159,54 +163,57 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             if (disposing)
             {
-                Stopwatch stopwatch = new Stopwatch();
-
-                stopwatch.Start();
-                while (!isStarted)
+                BrowserManager.Instance.Dispatcher.Invoke(() =>
                 {
-                    if (stopwatch.ElapsedMilliseconds > 100)
-                    {
-                        API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to start (required for safe disposal); Attempting to continue");
-                        break;
-                    }
-                    Thread.Sleep(10);
-                }
-                stopwatch.Stop();
-                stopwatch.Reset();
 
-                if (browserHost != null)
-                {
-                    browserHost.CloseBrowser();
-                    // OnBeforeClose must be called before we start disposing
+                    Stopwatch stopwatch = new Stopwatch();
+
                     stopwatch.Start();
-                    while (!isClosed)
+                    while (!isStarted)
                     {
-                        if (stopwatch.ElapsedMilliseconds > 100)
+                        if (stopwatch.ElapsedMilliseconds > 500)
                         {
-                            API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to close (required for safe disposal); Attempting unsafe kill");
+                            API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to start (required for safe disposal); Attempting to continue");
                             break;
                         }
                         Thread.Sleep(10);
                     }
                     stopwatch.Stop();
+                    stopwatch.Reset();
 
-                    browserHost.ParentWindowWillClose();
-                    browserHost.Dispose();
-                    browserHost = null;
-                }
-                
-                if (browser != null)
-                {
-                    BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
-                    browser.Dispose();
-                    browser = null;
-                }
+                    if (browserHost != null)
+                    {
+                        browserHost.CloseBrowser(true);
+                        // OnBeforeClose must be called before we start disposing
+                        stopwatch.Start();
+                        while (!isClosed)
+                        {
+                            if (stopwatch.ElapsedMilliseconds > 500)
+                            {
+                                API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to close (required for safe disposal); Attempting unsafe kill");
+                                break;
+                            }
+                            Thread.Sleep(10);
+                        }
+                        stopwatch.Stop();
+                        browserHost.ParentWindowWillClose();
+                        browserHost.Dispose();
+                        browserHost = null;
+                    }
 
-                if (browserClient != null)
-                {
-                    browserClient.Dispose();
-                    browserClient = null;
-                }
+                    if (browser != null)
+                    {
+                        BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
+                        browser.Dispose();
+                        browser = null;
+                    }
+
+                    if (browserClient != null)
+                    {
+                        browserClient.Dispose();
+                        browserClient = null;
+                    }
+                });
             }
 
             isDisposed = true;

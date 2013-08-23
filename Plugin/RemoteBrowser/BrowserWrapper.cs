@@ -82,7 +82,7 @@ namespace CLRBrowserSourcePlugin.Browser
             InitClient(browserSource);
 
             Debug.Assert(browserClient != null);
-            Debug.Assert(browserConfig == null);
+            Debug.Assert(browserConfig != null);
 
             BrowserConfig = browserConfig;
 
@@ -153,6 +153,9 @@ namespace CLRBrowserSourcePlugin.Browser
 
             try
             {
+                // Since the event methods can be called before the next statement
+                // set the status before we call it
+                Status = BrowserStatus.Creating;
                 CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, url);
             }
             catch (InvalidOperationException e)
@@ -164,13 +167,17 @@ namespace CLRBrowserSourcePlugin.Browser
 
             BrowserManager.Instance.IncrementBrowserInstanceCount();
 
-            Status = BrowserStatus.Creating;
-            
             return true;
         }
 
         public void CloseBrowser(bool isForcingClose)
         {
+            // the renderer doesn't need to communicate with the browser source
+            // after it has been closed
+            // this avoids a problem where the browser source gets disposed before it 
+            // has completed it's shutdown sequence
+            browserClient.RenderHandler.Cleanup();
+
             // Did we get a close before we finished creating?
             if (Status == BrowserStatus.Creating)
             {
@@ -228,7 +235,7 @@ namespace CLRBrowserSourcePlugin.Browser
 
             browser.GetHost().ParentWindowWillClose();
 
-            Debug.Assert(Status == BrowserStatus.Created);
+            Debug.Assert(Status == BrowserStatus.Created || Status == BrowserStatus.Closing);
 
             Status = BrowserStatus.Closing;
 

@@ -119,11 +119,11 @@ namespace CLRBrowserSourcePlugin.Browser
         public void Cleanup()
         {
             SizeEvent = null;
-            PaintEvent = null;
             
-
+            // Everything but size event must changed under lock while CEF has pending paint commands
             lock (texturesLock)
             {
+                PaintEvent = null;
                 CreateTextureEvent = null;
                 foreach (SharedTexture sharedTexture in textures)
                 {

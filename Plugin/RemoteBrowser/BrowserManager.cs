@@ -110,30 +110,51 @@ namespace CLRBrowserSourcePlugin.Browser
 
             int maximumBrowserKillWaitTime = BrowserSettings.Instance.RuntimeSettings.MaximumBrowserKillWaitTime;
 
-            dispatcher.InvokeAsync(() =>
-            {
-                CloseAllRegisteredBrowsers();
+            bool isDoingMessageLoopWork = true;
 
-                // this can be aborted by the InvokeShutdown logic
-                while (BrowserManager.Instance.BrowserInstanceCount > 0)
+            Thread shutdownThread = new Thread(new ThreadStart(() =>
+            {
+                while (BrowserInstanceCount > 0)
                 {
+                    if (!isMultiThreadedMessageLoop)
+                    {
+                        dispatcher.InvokeAsync(() => { if (isDoingMessageLoopWork) CefRuntime.DoMessageLoopWork(); });
+                    }
+
                     GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
                     GC.WaitForPendingFinalizers();
                     Thread.Sleep(100);
                 }
+            }));
 
-                CefRuntime.Shutdown();
-            });
-
-            dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
-            while (!dispatcherThread.Join(maximumBrowserKillWaitTime))
+            shutdownThread.Start();
+                       
+            while (!shutdownThread.Join(maximumBrowserKillWaitTime))
             {
                 MessageBoxResult result = MessageBox.Show("Would you like to continue waiting? \r\nNo will forcefully abort the clients and may result in unexpected behavior.", "Shutting down the browser instances is taking longer than usual.", MessageBoxButton.YesNo);
-                if (result.HasFlag(MessageBoxResult.Yes))
+                if (result == MessageBoxResult.No)
                 {
-                    dispatcherThread.Abort();
+                    shutdownThread.Abort();
+                    API.Instance.Log("BrowserManager::Stop() Aborting shutdown thread due to timeout.");
                 }
             }
+
+            isDoingMessageLoopWork = false;
+
+            if (BrowserInstanceCount > 0)
+            {
+                API.Instance.Log("BrowserManager::Stop() Unable to dispose of {0} orphaned browser objects", BrowserInstanceCount);
+            }
+
+            dispatcher.InvokeAsync(() => { CefRuntime.Shutdown(); });
+            dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
+            if (!dispatcherThread.Join(maximumBrowserKillWaitTime))
+            {
+                dispatcherThread.Abort();
+                API.Instance.Log("BrowserManager::Stop() Unable to abort dispatcher thread, giving up");
+            }
+
+            GC.Collect();
         }
 
         public void Update()
@@ -198,12 +219,5 @@ namespace CLRBrowserSourcePlugin.Browser
             }
         }
 
-        public void CloseAllRegisteredBrowsers()
-        {
-            lock (browserMapLock)
-            {
-                browserMap.Clear();
-            }
-        }
     }
 }

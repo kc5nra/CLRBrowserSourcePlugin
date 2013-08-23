@@ -8,7 +8,7 @@ using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
-    internal class BrowserClient : CefClient, IDisposable
+    internal class BrowserClient : CefClient
     {
         private bool isDisposed;
 
@@ -38,35 +38,5 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             return RenderHandler;
         }
-
-        #region Disposable
-
-        ~BrowserClient()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected new virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (RenderHandler != null)
-                {
-                    RenderHandler.Dispose();
-                    RenderHandler = null;
-                }
-            }
-
-            isDisposed = true;
-        }
-
-        #endregion
-
     }
 }

@@ -657,8 +657,6 @@ namespace CLRBrowserSourcePlugin.Shared
                 properties[i].SetValue(this, attr.Value);
             }
 
-            // read only
-            MultiThreadedMessageLoop = true;
         }
         #region Core Settings
 
@@ -704,8 +702,13 @@ namespace CLRBrowserSourcePlugin.Shared
         [DefaultValue(true)]
         [Category("Core")]
         [Description("Set to true to have the browser process message loop run in a separate thread.")]
-        [ReadOnly(true)]
         public bool MultiThreadedMessageLoop { get; set; }
+
+        [DefaultValue(5000)]
+        [Category("Core")]
+        [Description("Maximum amount of time to wait for browsers to gracefully close.  The short amout of time this is, the more likely there might be a crash with beta CEF builds.")]
+        public int MaximumBrowserKillWaitTime { get; set; }
+        
 
         #endregion
 

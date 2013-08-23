@@ -13,50 +13,90 @@ using System.Threading;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
-    internal class BrowserWrapper : IDisposable
+    internal class BrowserWrapper
     {
+        public enum BrowserStatus
+        {
+            Initial,
+            Creating,
+            Created,
+            Closing,
+            Closed
+        }
+
+        public BrowserStatus Status { get; private set; }
+        
         private bool isDisposed;
+
+        private bool hasPendingClose;
+
         private BrowserClient browserClient;
         private CefBrowser browser;
         private CefBrowserHost browserHost;
+        public BrowserConfig BrowserConfig { get; private set; }
 
-        private BrowserConfig config;
 
-        private int width;
-        private int height;
-
-        bool isStarted = false;
-        bool isClosed = false;
-
-        public BrowserWrapper(BrowserSource browserSource)
+        public BrowserWrapper()
         {
+            isDisposed = false;
+
+            Status = BrowserStatus.Initial;
+
+            hasPendingClose = false;
+            browserClient = null;
+            browser = null;
+            browserHost = null;
+        }
+
+        private void InitClient(BrowserSource browserSource)
+        {
+            Debug.Assert(browserClient == null);
+
             browserClient = new BrowserClient();
+
             browserClient.RenderHandler.SizeEvent = new SizeEventHandler(Size);
             browserClient.RenderHandler.PaintEvent = new PaintEventHandler(browserSource.RenderTexture);
             browserClient.RenderHandler.CreateTextureEvent = new CreateTextureEventHandler(browserSource.CreateTexture);
             browserClient.RenderHandler.DestroyTextureEvent = new DestroyTextureEventHandler(browserSource.DestroyTexture);
             browserClient.LifeSpanHandler.AfterCreatedEvent = new AfterCreatedEventHandler(AfterCreated);
             browserClient.LifeSpanHandler.OnBeforeCloseEvent = new OnBeforeCloseEventHandler(OnBeforeClose);
+            browserClient.LifeSpanHandler.DoCloseEvent = new DoCloseEventHandler(DoClose);
         }
 
-        public void UpdateSettings(BrowserConfig config)
+        private void UninitClient()
         {
-            this.config = config;
+            Debug.Assert(browserClient != null);
 
-            width = (int)config.BrowserSourceSettings.Width;
-            height = (int)config.BrowserSourceSettings.Height;
+            browserClient.DisplayHandler = null;
+            browserClient.LifeSpanHandler = null;
+
+            browserClient.RenderHandler.Cleanup();
+            browserClient.RenderHandler = null;
+        }
+
+
+        public bool CreateBrowser(BrowserSource browserSource, BrowserConfig browserConfig)
+        {
+            Debug.Assert(Status == BrowserStatus.Initial);
+
+            InitClient(browserSource);
+
+            Debug.Assert(browserClient != null);
+            Debug.Assert(browserConfig == null);
+
+            BrowserConfig = browserConfig;
 
             CefWindowInfo windowInfo = CefWindowInfo.Create();
             windowInfo.TransparentPainting = true;
             windowInfo.SetAsOffScreen(IntPtr.Zero);
-            windowInfo.Width = (int)width;
-            windowInfo.Height = (int)height;
+            windowInfo.Width = (int)browserConfig.BrowserSourceSettings.Width;
+            windowInfo.Height = (int)browserConfig.BrowserSourceSettings.Height;
 
             String base64EncodedDataUri = "data:text/css;charset=utf-8;base64,";
-            String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(config.BrowserSourceSettings.CSS));
+            String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(browserConfig.BrowserSourceSettings.CSS));
             
             BrowserInstanceSettings settings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
-            settings.MergeWith(config.BrowserInstanceSettings);
+            settings.MergeWith(browserConfig.BrowserInstanceSettings);
             
             CefBrowserSettings browserSettings = new CefBrowserSettings {
                 AcceleratedCompositing = settings.AcceleratedCompositing,
@@ -97,128 +137,123 @@ namespace CLRBrowserSourcePlugin.Browser
                 WebSecurity = settings.WebSecurity,
             };
 
-            String url = config.BrowserSourceSettings.Url;
+            String url = browserConfig.BrowserSourceSettings.Url;
 
-            if (config.BrowserSourceSettings.IsApplyingTemplate)
+            if (browserConfig.BrowserSourceSettings.IsApplyingTemplate)
             {
-                String resolvedTemplate = config.BrowserSourceSettings.Template;
-                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", config.BrowserSourceSettings.Url);
-                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
-                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
+                String resolvedTemplate = browserConfig.BrowserSourceSettings.Template;
+                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", browserConfig.BrowserSourceSettings.Url);
+                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", browserConfig.BrowserSourceSettings.Width.ToString());
+                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", browserConfig.BrowserSourceSettings.Height.ToString());
 
                 url = "local://initial/";
             }
 
             // must be sync invoke because wrapper can be destroyed before it is run
-            BrowserManager.Instance.Dispatcher.Invoke(() =>
+
+            try
             {
                 CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, url);
-            });
+            }
+            catch (InvalidOperationException e)
+            {
+                API.Instance.Log("BrowserWrapper::CreateBrowser failed; {0}", e.Message);
+                UninitClient();
+                return false;
+            }
+
+            BrowserManager.Instance.IncrementBrowserInstanceCount();
+
+            Status = BrowserStatus.Creating;
             
+            return true;
+        }
+
+        public void CloseBrowser(bool isForcingClose)
+        {
+            // Did we get a close before we finished creating?
+            if (Status == BrowserStatus.Creating)
+            {
+                hasPendingClose = true;
+            }
+            else if (Status == BrowserStatus.Created)
+            {
+                Debug.Assert(browser != null);
+                Status = BrowserStatus.Closing;
+                BrowserManager.Instance.Dispatcher.Invoke(() => { browser.GetHost().CloseBrowser(isForcingClose); });
+            }
         }
 
         public bool Size(ref CefRectangle rect)
         {
+
             rect.X = 0;
             rect.Y = 0;
-            rect.Width = width;
-            rect.Height = height;
+            rect.Width = BrowserConfig.BrowserSourceSettings.Width;
+            rect.Height = BrowserConfig.BrowserSourceSettings.Height;
 
             return true;
         }
 
+        
+
+        #region Events
+
+        // AfterCreated event
         public void AfterCreated(CefBrowser browser)
         {
-            if (browser != null)
-            {
-                this.browser = browser;
-                this.browserHost = browser.GetHost();
 
-                BrowserManager.Instance.RegisterBrowser(browser.Identifier, config);
-                isStarted = true;
+            Debug.Assert(this.browser == null);
+            Debug.Assert(browser != null);
+
+            this.browser = browser;
+
+            BrowserManager.Instance.RegisterBrowser(browser.Identifier, this);
+
+            Debug.Assert(Status == BrowserStatus.Creating);
+
+            Status = BrowserStatus.Created;
+
+            if (hasPendingClose)
+            {
+                hasPendingClose = false;
+                CloseBrowser(true);
             }
         }
 
+        // DoClose event
+        public bool DoClose(CefBrowser browser)
+        {
+            Debug.Assert(browser != null);
+
+            browser.GetHost().ParentWindowWillClose();
+
+            Debug.Assert(Status == BrowserStatus.Created);
+
+            Status = BrowserStatus.Closing;
+
+            return false;
+        }
+
+        // OnBeforeClose event
         public void OnBeforeClose(CefBrowser browser)
         {
-            isClosed = true;
-        }
+            Debug.Assert(Status == BrowserStatus.Closing);
+            Debug.Assert(browser != null);
 
-        #region Disposable
+            BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
 
-        ~BrowserWrapper()
-        {
-            Dispose(false);
-        }
+            browser = null;
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+            BrowserManager.Instance.DecrementBrowserInstanceCount();
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                BrowserManager.Instance.Dispatcher.Invoke(() =>
-                {
+            Status = BrowserStatus.Closed;
 
-                    Stopwatch stopwatch = new Stopwatch();
-
-                    stopwatch.Start();
-                    while (!isStarted)
-                    {
-                        if (stopwatch.ElapsedMilliseconds > 500)
-                        {
-                            API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to start (required for safe disposal); Attempting to continue");
-                            break;
-                        }
-                        Thread.Sleep(10);
-                    }
-                    stopwatch.Stop();
-                    stopwatch.Reset();
-
-                    if (browserHost != null)
-                    {
-                        browserHost.CloseBrowser(true);
-                        // OnBeforeClose must be called before we start disposing
-                        stopwatch.Start();
-                        while (!isClosed)
-                        {
-                            if (stopwatch.ElapsedMilliseconds > 500)
-                            {
-                                API.Instance.Log("BrowserWrapper::Dispose timed out waiting for browser to close (required for safe disposal); Attempting unsafe kill");
-                                break;
-                            }
-                            Thread.Sleep(10);
-                        }
-                        stopwatch.Stop();
-                        browserHost.ParentWindowWillClose();
-                        browserHost.Dispose();
-                        browserHost = null;
-                    }
-
-                    if (browser != null)
-                    {
-                        BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
-                        browser.Dispose();
-                        browser = null;
-                    }
-
-                    if (browserClient != null)
-                    {
-                        browserClient.Dispose();
-                        browserClient = null;
-                    }
-                });
-            }
-
-            isDisposed = true;
+            UninitClient();
         }
 
         #endregion
-        
+
         #region Properties
 
         #endregion

@@ -12,6 +12,8 @@ using CLRBrowserSourcePlugin.Shared;
 using Xilium.CefGlue;
 using System.Windows.Threading;
 using CLRBrowserSourcePlugin.RemoteBrowser;
+using System.Windows;
+using System.Diagnostics;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
@@ -36,17 +38,18 @@ namespace CLRBrowserSourcePlugin.Browser
         #endregion
 
         private Thread dispatcherThread;
-        private Object browserTasksLock = new Object();
         private Dispatcher dispatcher;
 
         private Object browserMapLock = new Object();
-        private Dictionary<int, BrowserConfig> browserMap;
+        private Dictionary<int, BrowserWrapper> browserMap;
 
         private bool isMultiThreadedMessageLoop;
 
+        private long browserInstanceCount;
+
         public BrowserManager()
         {
-            browserMap = new Dictionary<int, BrowserConfig>();
+            browserMap = new Dictionary<int, BrowserWrapper>();
 
             ManualResetEvent dispatcherReadyEvent = new ManualResetEvent(false);
             dispatcherThread = new Thread(new ThreadStart(() =>
@@ -104,16 +107,32 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void Stop()
         {
-            dispatcher.Invoke(() =>
+
+            int maximumBrowserKillWaitTime = BrowserSettings.Instance.RuntimeSettings.MaximumBrowserKillWaitTime;
+
+            dispatcher.InvokeAsync(() =>
             {
-                CefRuntime.ClearSchemeHandlerFactories();
+                CloseAllRegisteredBrowsers();
+
+                // this can be aborted by the InvokeShutdown logic
+                while (BrowserManager.Instance.BrowserInstanceCount > 0)
+                {
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+                    GC.WaitForPendingFinalizers();
+                    Thread.Sleep(100);
+                }
+
                 CefRuntime.Shutdown();
             });
 
-            dispatcher.InvokeShutdown();
-            if (!dispatcherThread.Join(500))
+            dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
+            while (!dispatcherThread.Join(maximumBrowserKillWaitTime))
             {
-                dispatcherThread.Abort();
+                MessageBoxResult result = MessageBox.Show("Would you like to continue waiting? \r\nNo will forcefully abort the clients and may result in unexpected behavior.", "Shutting down the browser instances is taking longer than usual.", MessageBoxButton.YesNo);
+                if (result.HasFlag(MessageBoxResult.Yes))
+                {
+                    dispatcherThread.Abort();
+                }
             }
         }
 
@@ -137,27 +156,53 @@ namespace CLRBrowserSourcePlugin.Browser
             }
         }
 
-        public void RegisterBrowser(int id, BrowserConfig config) 
+        public void IncrementBrowserInstanceCount()
         {
-            lock (browserMapLock)
+            System.Threading.Interlocked.Increment(ref browserInstanceCount);
+        }
+
+        public void DecrementBrowserInstanceCount()
+        {
+            System.Threading.Interlocked.Decrement(ref browserInstanceCount);
+        }
+
+        public long BrowserInstanceCount
+        {
+            get
             {
-                browserMap.Add(id, config);
+                return System.Threading.Interlocked.Read(ref browserInstanceCount);
             }
         }
 
-        public bool TryGetBrowserConfig(int id, out BrowserConfig config)
+        public void RegisterBrowser(int browserIdentifier, BrowserWrapper browserWrapper) 
         {
             lock (browserMapLock)
             {
-                return browserMap.TryGetValue(id, out config);
+                browserMap.Add(browserIdentifier, browserWrapper);
             }
         }
 
-        public void UnregisterBrowser(int id)
+        public bool TryGetBrowser(int browserIdentifier, out BrowserWrapper browserWrapper)
         {
             lock (browserMapLock)
             {
-                browserMap.Remove(id);
+                return browserMap.TryGetValue(browserIdentifier, out browserWrapper);
+            }
+        }
+
+        public void UnregisterBrowser(int browserIdentifier)
+        {
+            lock (browserMapLock)
+            {
+                browserMap.Remove(browserIdentifier);
+            }
+        }
+
+        public void CloseAllRegisteredBrowsers()
+        {
+            lock (browserMapLock)
+            {
+                browserMap.Clear();
             }
         }
     }

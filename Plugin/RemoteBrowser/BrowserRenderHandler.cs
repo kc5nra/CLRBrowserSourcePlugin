@@ -17,10 +17,8 @@ namespace CLRBrowserSourcePlugin.Browser
     public delegate void CreateTextureEventHandler(UInt32 width, UInt32 height, out IntPtr textureHandle);
     public delegate void DestroyTextureEventHandler(IntPtr textureHandle);
 
-    internal class BrowserRenderHandler : CefRenderHandler, IDisposable
+    internal class BrowserRenderHandler : CefRenderHandler
     {
-        private bool isDisposed;
-
         private Object texturesLock = new Object();
         private List<SharedTexture> textures;
         private int currentTextureIndex;
@@ -35,16 +33,28 @@ namespace CLRBrowserSourcePlugin.Browser
 
         protected override bool GetRootScreenRect(CefBrowser browser, ref CefRectangle rect)
         {
-            return SizeEvent(ref rect);
+            if (SizeEvent != null)
+            {
+                return SizeEvent(ref rect);
+            }
+            return false;
         }
 
         protected override bool GetViewRect(CefBrowser browser, ref CefRectangle rect)
         {
-            return SizeEvent(ref rect);
+            if (SizeEvent != null)
+            {
+                return SizeEvent(ref rect);
+            }
+            return false;
         }
 
         protected override bool GetScreenInfo(CefBrowser browser, CefScreenInfo screenInfo)
         {
+            if (screenInfo != null)
+            {
+                return false;
+            }
             return false;
         }
 
@@ -58,42 +68,46 @@ namespace CLRBrowserSourcePlugin.Browser
 
         protected override void OnPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr buffer, int width, int height)
         {
-            if (isDisposed)
+            if (CreateTextureEvent != null)
             {
-                return;
-            }
-
-            lock (texturesLock)
-            {
-                SharedTexture textureToRender;
-                if (textures.Count <= currentTextureIndex)
+                lock (texturesLock)
                 {
-                    IntPtr sharedTextureHandle;
-                    CreateTextureEvent((UInt32)width, (UInt32)height, out sharedTextureHandle);
-
-                    // TODO : eventually switch to shared textures
-                    //Texture texture = GraphicsSystem.Instance.CreateTextureFromSharedHandle((UInt32)width, (UInt32)height, sharedTextureHandle);
-
-                    Texture texture = new Texture(sharedTextureHandle);
-
-                    textureToRender = new SharedTexture
+                    SharedTexture textureToRender;
+                    if (textures.Count <= currentTextureIndex)
                     {
-                        Texture = texture,
-                        Handle = sharedTextureHandle
-                    };
+                        IntPtr sharedTextureHandle;
+                        CreateTextureEvent((UInt32)width, (UInt32)height, out sharedTextureHandle);
 
-                    textures.Add(textureToRender);
+                        if (sharedTextureHandle == IntPtr.Zero)
+                        {
+                            API.Instance.Log("BrowserRenderHandler::OnPaint failed to create texture");
+                            return;
+                        }
+
+                        // TODO : eventually switch to shared textures
+                        //Texture texture = GraphicsSystem.Instance.CreateTextureFromSharedHandle((UInt32)width, (UInt32)height, sharedTextureHandle);
+
+                        Texture texture = new Texture(sharedTextureHandle);
+
+                        textureToRender = new SharedTexture
+                        {
+                            Texture = texture,
+                            Handle = sharedTextureHandle
+                        };
+
+                        textures.Add(textureToRender);
+                    }
+                    else
+                    {
+                        textureToRender = textures[currentTextureIndex];
+                    }
+
+                    textureToRender.Texture.SetImage(buffer, GSImageFormat.GS_IMAGEFORMAT_BGRA, (UInt32)(width * 4));
+
+                    // loop the current texture index
+                    currentTextureIndex = ++currentTextureIndex % textureCount;
+                    PaintEvent(textureToRender.Handle);
                 }
-                else
-                {
-                    textureToRender = textures[currentTextureIndex];
-                }
-
-                textureToRender.Texture.SetImage(buffer, GSImageFormat.GS_IMAGEFORMAT_BGRA, (UInt32)(width * 4));
-
-                // loop the current texture index
-                currentTextureIndex = ++currentTextureIndex % textureCount;
-                PaintEvent(textureToRender.Handle);
             }
         }
 
@@ -101,37 +115,25 @@ namespace CLRBrowserSourcePlugin.Browser
         {
         }
 
-        #region Disposable
-
-        ~BrowserRenderHandler()
+        
+        public void Cleanup()
         {
-            Dispose(false);
-        }
+            SizeEvent = null;
+            PaintEvent = null;
+            
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
+            lock (texturesLock)
             {
-                lock (texturesLock)
+                CreateTextureEvent = null;
+                foreach (SharedTexture sharedTexture in textures)
                 {
-                    foreach (SharedTexture sharedTexture in textures)
-                    {
-                        DestroyTextureEvent(sharedTexture.Handle);
-                    }
-                    textures.Clear();
+                    DestroyTextureEvent(sharedTexture.Handle);
                 }
+                textures.Clear();
+                
+                DestroyTextureEvent = null;
             }
-
-            isDisposed = true;
         }
-
-        #endregion
 
         public SizeEventHandler SizeEvent { private get; set; }
         public PaintEventHandler PaintEvent { private get; set; }

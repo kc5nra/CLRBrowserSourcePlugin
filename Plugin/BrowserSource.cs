@@ -15,7 +15,7 @@ namespace CLRBrowserSourcePlugin
     {
         private bool isDisposed;
         private XElement configElement;
-        private BrowserConfig config;
+        private BrowserConfig browserConfig;
 
         private BrowserWrapper browser;
 
@@ -27,7 +27,7 @@ namespace CLRBrowserSourcePlugin
         public BrowserSource(XElement configElement)
         {
             this.configElement = configElement;
-            this.config = new BrowserConfig();
+            this.browserConfig = new BrowserConfig();
             this.textureMap = new Dictionary<IntPtr, Texture>();
 
             UpdateSettings();
@@ -50,9 +50,18 @@ namespace CLRBrowserSourcePlugin
         {
             if (disposing)
             {
+                // remove any pending texture requests
+                lock (pendingTextureLock)
+                {
+                    if (pendingTexture != null && pendingTexture.Texture != null)
+                    {
+                        pendingTexture.Texture.Dispose();
+                    }
+                    pendingTexture = null;
+                }
                 if (browser != null)
                 {
-                    browser.Dispose();
+                    browser.CloseBrowser(true);
                     browser = null;
                 }
             }
@@ -64,22 +73,22 @@ namespace CLRBrowserSourcePlugin
 
         override public void UpdateSettings()
         {
-            config.Reload(configElement);
+            browserConfig.Reload(configElement);
 
             // unscaled w/h
-            Size.X = (float)config.BrowserSourceSettings.Width;
-            Size.Y = (float)config.BrowserSourceSettings.Height;
+            Size.X = (float)browserConfig.BrowserSourceSettings.Width;
+            Size.Y = (float)browserConfig.BrowserSourceSettings.Height;
 
-            outputColor = 0xFFFFFF | (((uint)(config.BrowserSourceSettings.Opacity * 255) & 0xFF) << 24);
+            outputColor = 0xFFFFFF | (((uint)(browserConfig.BrowserSourceSettings.Opacity * 255) & 0xFF) << 24);
 
             if (browser != null)
             {
-                browser.Dispose();
+                browser.CloseBrowser(true);
                 browser = null;
             }
 
-            browser = new BrowserWrapper(this);
-            browser.UpdateSettings(config);
+            browser = new BrowserWrapper();
+            browser.CreateBrowser(this, browserConfig);
         }
 
         public void RenderTexture(IntPtr textureHandle)
@@ -94,13 +103,58 @@ namespace CLRBrowserSourcePlugin
             }
         }
 
+        public class TextureDesc
+        {
+            public UInt32 Width { get; set; }
+            public UInt32 Height { get; set; }
+            public Texture Texture { get; set; }
+        }
+
+        private TextureDesc pendingTexture;
+        private Object pendingTextureLock = new Object();
+
         public void CreateTexture(UInt32 width, UInt32 height, out IntPtr textureHandle)
         {
             // TODO : switch to shared textures when we go multiprocess
             //textureHandle = GS.CreateSharedTexture(width, height, GSColorFormat.GS_BGRA);
-            Texture texture = GS.CreateTexture(width, height, GSColorFormat.GS_BGRA, null, false, false);
-            textureMap.Add(texture.OBSTexture, texture);
-            textureHandle = texture.OBSTexture;
+            lock (pendingTextureLock)
+            {
+                if (pendingTexture != null && pendingTexture.Width == width && pendingTexture.Height == height)
+                {
+                    if (pendingTexture.Texture != null)
+                    {
+                        textureMap.Add(pendingTexture.Texture.OBSTexture, pendingTexture.Texture);
+                        textureHandle = pendingTexture.Texture.OBSTexture;
+                        pendingTexture = null;
+                        return;
+                    }
+                    else
+                    {
+                        textureHandle = IntPtr.Zero;
+                        return;
+                    }
+                }
+                else
+                {
+                    if (pendingTexture != null)
+                    {
+                        // if we have a pending texture that was the wrong size, dispose
+                        if (pendingTexture.Texture != null)
+                        {
+                            pendingTexture.Texture.Dispose();
+                        }
+                    }
+
+                    pendingTexture = new TextureDesc
+                    {
+                        Width = width,
+                        Height = height
+                    };
+                    textureHandle = IntPtr.Zero;
+
+                    return;
+                }
+            }
         }
 
         public void DestroyTexture(IntPtr textureHandle)
@@ -124,6 +178,15 @@ namespace CLRBrowserSourcePlugin
         {
             // only does something if browser is single threaded event loop
             BrowserManager.Instance.Update();
+
+            lock (pendingTextureLock)
+            {
+                if (pendingTexture != null && pendingTexture.Texture == null)
+                {
+                    pendingTexture.Texture = GS.CreateTexture(pendingTexture.Width, pendingTexture.Height, GSColorFormat.GS_BGRA, null, false, false);
+                }
+            }
+
         }
 
         override public void Render(float x, float y, float width, float height)

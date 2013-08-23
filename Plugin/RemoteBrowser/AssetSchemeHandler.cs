@@ -21,11 +21,11 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 return null;
             }
 
-            BrowserConfig config;
+            BrowserWrapper browserWrapper;
 
-            if (BrowserManager.Instance.TryGetBrowserConfig(browser.Identifier, out config))
+            if (BrowserManager.Instance.TryGetBrowser(browser.Identifier, out browserWrapper))
             {
-                return new AssetSchemeHandler(config, request);
+                return new AssetSchemeHandler(browserWrapper.BrowserConfig, request);
             }
             else
             {

@@ -19,6 +19,7 @@ namespace CLRBrowserSourcePlugin.Shared
         protected override void OnRegisterCustomSchemes(CefSchemeRegistrar registrar)
         {
             registrar.AddCustomScheme("local", true, true, false);
+            registrar.AddCustomScheme("http", true, true, false);
         }
 
         protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)

@@ -40,9 +40,11 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
         private BrowserConfig config;
 
         private Uri uri;
+        
         private String resolvedPath;
-
         private Stream inputStream;
+
+        private Boolean isAssetWrapping;
 
         private bool isComplete;
         private long length;
@@ -101,8 +103,9 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 return false;
             }
 
-            if (uri.Host.Equals("initial"))
+            if (uri.LocalPath.Length == 1)
             {
+                isAssetWrapping = true;
                 String resolvedTemplate = config.BrowserSourceSettings.Template;
                 resolvedTemplate = resolvedTemplate.Replace("$(FILE)", config.BrowserSourceSettings.Url);
                 resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
@@ -112,6 +115,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             }
             else
             {
+                isAssetWrapping = false;
+
                 if (uri.LocalPath != null && uri.LocalPath.Length > 1)
                 {
                     resolvedPath = uri.LocalPath.Substring(1);
@@ -121,7 +126,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                     API.Instance.Log("AssetSchemeHandler::ProcessRequest: Unable to parse path {0}", request.Url);
                     return false;
                 }
-
+               
                 try
                 {
                     inputStream = new FileStream(resolvedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -184,7 +189,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             }
             catch (Exception e)
             {
-                API.Instance.Log("AssetSchemeHandler::ReadResponse of file {0} failed; {1}", resolvedPath, e.Message);
+                API.Instance.Log("AssetSchemeHandler::ReadResponse of file {0} failed; {1}", isAssetWrapping ? "{wrapped asset}" : resolvedPath, e.Message);
                 if (inputStream != null)
                 {
                     inputStream.Dispose();

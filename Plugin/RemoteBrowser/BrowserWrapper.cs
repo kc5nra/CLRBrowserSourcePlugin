@@ -91,6 +91,8 @@ namespace CLRBrowserSourcePlugin.Browser
             windowInfo.SetAsOffScreen(IntPtr.Zero);
             windowInfo.Width = (int)browserConfig.BrowserSourceSettings.Width;
             windowInfo.Height = (int)browserConfig.BrowserSourceSettings.Height;
+            windowInfo.MenuHandle = IntPtr.Zero;
+            windowInfo.ParentHandle = IntPtr.Zero;
 
             String base64EncodedDataUri = "data:text/css;charset=utf-8;base64,";
             String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(browserConfig.BrowserSourceSettings.CSS));
@@ -146,7 +148,7 @@ namespace CLRBrowserSourcePlugin.Browser
                 resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", browserConfig.BrowserSourceSettings.Width.ToString());
                 resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", browserConfig.BrowserSourceSettings.Height.ToString());
 
-                url = "local://initial/";
+                url = "http://absolute";
             }
 
             // must be sync invoke because wrapper can be destroyed before it is run
@@ -170,6 +172,10 @@ namespace CLRBrowserSourcePlugin.Browser
             return true;
         }
 
+        private void DoCloseBrowser(bool isForcingClose)
+        {
+
+        }
         public void CloseBrowser(bool isForcingClose)
         {
             // the renderer doesn't need to communicate with the browser source
@@ -187,7 +193,7 @@ namespace CLRBrowserSourcePlugin.Browser
             {
                 Debug.Assert(browser != null);
                 Status = BrowserStatus.Closing;
-                BrowserManager.Instance.Dispatcher.Invoke(() => { browser.GetHost().CloseBrowser(isForcingClose); });
+                BrowserManager.Instance.Dispatcher.Invoke(new Action(() => { browser.GetHost().CloseBrowser(isForcingClose); }));
             }
         }
 
@@ -201,8 +207,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
             return true;
         }
-
-        
 
         #region Events
 

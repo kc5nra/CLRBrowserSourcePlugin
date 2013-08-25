@@ -11,6 +11,8 @@ using CLROBS;
 using System.Web.Script.Serialization;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Collections.ObjectModel;
+using System.Runtime.Serialization;
 
 namespace CLRBrowserSourcePlugin.Shared
 {
@@ -128,6 +130,10 @@ namespace CLRBrowserSourcePlugin.Shared
             if (serializedSettings.RuntimeSettings == null)
             {
                 serializedSettings.RuntimeSettings = new BrowserRuntimeSettings();
+            }
+            if (serializedSettings.RuntimeSettings.Plugins == null)
+            {
+                serializedSettings.RuntimeSettings.Plugins = new List<BrowserPlugin>();
             }
             
         }
@@ -521,7 +527,7 @@ namespace CLRBrowserSourcePlugin.Shared
         /// Controls whether file URLs will have access to all URLs. Also configurable
         /// using the "allow-universal-access-from-files" command-line switch.
         /// </summary>
-        [DefaultValue(CefState.Default)]
+        [DefaultValue(CefState.Enabled)]
         [Category("Security")]
         [Description("Controls whether file URLs will have access to all URLs.")]
         public CefState UniversalAccessFromFileUrls { get; set; }
@@ -530,7 +536,7 @@ namespace CLRBrowserSourcePlugin.Shared
         /// Controls whether file URLs will have access to other file URLs. Also
         /// configurable using the "allow-access-from-files" command-line switch.
         /// </summary>
-        [DefaultValue(CefState.Default)]
+        [DefaultValue(CefState.Enabled)]
         [Category("Security")]
         [Description("Controls whether file URLs will have access to other file URLs.")]
         public CefState FileAccessFromFileUrls { get; set; }
@@ -541,7 +547,7 @@ namespace CLRBrowserSourcePlugin.Shared
         /// security behavior such as cross-site scripting (XSS). Also configurable
         /// using the "disable-web-security" command-line switch.
         /// </summary>
-        [DefaultValue(CefState.Default)]
+        [DefaultValue(CefState.Disabled)]
         [Category("Security")]
         [Description("Controls whether web security restrictions (same-origin policy) will be enforced. Disabling this setting is not recommend as it will allow risky security behavior such as cross-site scripting (XSS).")]
         public CefState WebSecurity { get; set; }
@@ -647,6 +653,8 @@ namespace CLRBrowserSourcePlugin.Shared
     public class BrowserRuntimeSettings
     {
 
+        private List<BrowserPlugin> plugins;
+
         public BrowserRuntimeSettings()
         {
             PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(this);
@@ -656,8 +664,8 @@ namespace CLRBrowserSourcePlugin.Shared
                 if (attr == null) continue;
                 properties[i].SetValue(this, attr.Value);
             }
-
         }
+
         #region Core Settings
 
         /// <summary>
@@ -708,7 +716,22 @@ namespace CLRBrowserSourcePlugin.Shared
         [Category("Core")]
         [Description("Maximum amount of time to wait for browsers to gracefully close.  The short amout of time this is, the more likely there might be a crash with beta CEF builds.")]
         public int MaximumBrowserKillWaitTime { get; set; }
-        
+
+        [Browsable(false)]
+        public List<BrowserPlugin> Plugins
+        {
+            get { return this.plugins; }
+            internal set { this.plugins = value; }
+        }
+
+        // this (below) is the one the PropertyGrid will use
+        [DisplayName("Plugins")]
+        [Category("Core")]
+        [Description("List of all the plugins currently installed and available to browser sources")]
+        public ReadOnlyCollection<BrowserPlugin> ReadOnlyPlugins
+        {
+            get { return this.plugins.AsReadOnly(); }
+        }
 
         #endregion
 

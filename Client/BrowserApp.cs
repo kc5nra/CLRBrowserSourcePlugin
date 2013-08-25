@@ -11,6 +11,7 @@ namespace CLRBrowserSourcePlugin.Shared
     {
         protected override void OnRegisterCustomSchemes(CefSchemeRegistrar registrar)
         {
+            registrar.AddCustomScheme("http", true, true, false);
             registrar.AddCustomScheme("local", true, true, false);
         }
     }

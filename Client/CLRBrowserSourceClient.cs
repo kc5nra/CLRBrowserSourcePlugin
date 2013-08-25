@@ -9,8 +9,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Xilium.CefGlue;
 
+
 namespace CLRBrowserSourceClient
 {
+    
     class CLRBrowserSourceClient
     {
         [DllImport("kernel32")]
@@ -29,9 +31,10 @@ namespace CLRBrowserSourceClient
             LoadLibrary(Path.Combine(libraryDirectory, "ffmpegsumo.dll"));
             LoadLibrary(Path.Combine(libraryDirectory, "icudt.dll"));
             LoadLibrary(Path.Combine(libraryDirectory, "libcef.dll"));
-
+            
             CefMainArgs mainArgs = new CefMainArgs(args);
             return CefRuntime.ExecuteProcess(mainArgs, new BrowserApp());
+
         }
     }
 }

@@ -24,7 +24,14 @@ namespace CLRBrowserSourcePlugin.Shared
 
             if (sourceSettingsString != null && sourceSettingsString.Count() > 0)
             {
-                BrowserSourceSettings = serializer.Deserialize<BrowserSourceSettings>(sourceSettingsString);
+                try
+                {
+                    BrowserSourceSettings = serializer.Deserialize<BrowserSourceSettings>(sourceSettingsString);
+                }
+                catch (ArgumentException e)
+                {
+                    API.Instance.Log("Failed to deserialized source settings and forced to recreate; {0}", e.Message);
+                }
             }
 
             if (instanceSettingsString != null && instanceSettingsString.Count() > 0)

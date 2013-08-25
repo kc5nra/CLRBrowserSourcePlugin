@@ -56,7 +56,12 @@ namespace CLRBrowserSourcePlugin
             {
                 FontFamily = new FontFamily("Consolas"),
                 SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("CSS"),
-                ShowLineNumbers = true
+                ShowLineNumbers = true,
+                Options =
+                {
+                    ConvertTabsToSpaces = true,
+                    IndentationSize = 2
+                }
             };
             
             TemplateEditor = new TextEditor
@@ -64,6 +69,11 @@ namespace CLRBrowserSourcePlugin
                 FontFamily = new FontFamily("Consolas"),
                 SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("HTML"),
                 ShowLineNumbers = true,
+                Options =
+                {
+                    ConvertTabsToSpaces = true,
+                    IndentationSize = 2
+                }
             };
 
             cssGrid.Children.Add(CSSEditor);
@@ -79,6 +89,7 @@ namespace CLRBrowserSourcePlugin
             instanceSettingsPropertyGrid.PropertyValueChanged += dirtyPropHandler;
             advancedPropertiesCheckBox.Checked += dirtyRoutedHandler;
             advancedPropertiesCheckBox.Unchecked += dirtyRoutedHandler;
+            
         }
 
 

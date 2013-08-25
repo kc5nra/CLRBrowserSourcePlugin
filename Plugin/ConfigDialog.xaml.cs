@@ -46,7 +46,12 @@ namespace CLRBrowserSourcePlugin
             {
                 FontFamily = new FontFamily("Consolas"),
                 SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("CSS"),
-                ShowLineNumbers = true
+                ShowLineNumbers = true,
+                Options = 
+                {
+                    ConvertTabsToSpaces = true,
+                    IndentationSize = 2
+                }
             };
 
             templateEditor = new TextEditor
@@ -54,11 +59,16 @@ namespace CLRBrowserSourcePlugin
                 FontFamily = new FontFamily("Consolas"),
                 SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("HTML"),
                 ShowLineNumbers = true,
+                Options = 
+                {
+                    ConvertTabsToSpaces = true,
+                    IndentationSize = 2
+                }
             };
 
             advancedPropertiesCheckBox.IsChecked = config.BrowserSourceSettings.IsShowingAdvancedProperties;
             SetTabVisibility(advancedTab, config.BrowserSourceSettings.IsShowingAdvancedProperties);
-            applyTemplateCheckBox.IsChecked = config.BrowserSourceSettings.IsApplyingTemplate;
+            
             SetTabVisibility(templateTab, config.BrowserSourceSettings.IsApplyingTemplate);
 
             url.Text = config.BrowserSourceSettings.Url;
@@ -67,6 +77,8 @@ namespace CLRBrowserSourcePlugin
             widthText.Text = config.BrowserSourceSettings.Width.ToString();
             heightText.Text = config.BrowserSourceSettings.Height.ToString();
             opacitySlider.Value = config.BrowserSourceSettings.Opacity;
+
+            applyTemplateCheckBox.IsChecked = config.BrowserSourceSettings.IsApplyingTemplate;
 
             instanceSettings.SelectedObject = config.BrowserInstanceSettings;
 
@@ -150,7 +162,7 @@ namespace CLRBrowserSourcePlugin
             // Get the selected file name and display in a TextBox 
             if (result == true)
             {
-                url.Text = "local://absolute/" + dlg.FileName;
+                url.Text = "http://absolute/" + dlg.FileName;
             }
 
         }

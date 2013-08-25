@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:WinForms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
-             mc:Ignorable="d" Title="Sample Image Configuration" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Height="504" Width="820">
+             mc:Ignorable="d" Title="CLR Browser Configuration" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Height="504" Width="820">
     <Grid x:Name="mainGrid" HorizontalAlignment="Left" Height="494" VerticalAlignment="Top" Width="810" Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
 

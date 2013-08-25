@@ -65,7 +65,7 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void Start()
         {
-            dispatcher.Invoke(() =>
+            dispatcher.Invoke(new Action(() =>
             {
                 CefRuntime.Load();
                 CefMainArgs cefMainArgs = new CefMainArgs(IntPtr.Zero, new String[0]);
@@ -75,7 +75,7 @@ namespace CLRBrowserSourcePlugin.Browser
 
                 CefSettings cefSettings = new CefSettings
                 {
-                    BrowserSubprocessPath = @"plugins\CLRHostPlugin\CLRBrowserSourcePlugin\CLRBrowserSourceClient.exe",
+                    BrowserSubprocessPath = @"plugins\CLRHostPlugin\CLRBrowserSourcePlugin\CLRBrowserSourcePipe.exe",
                     CachePath = settings.CachePath,
                     CommandLineArgsDisabled = settings.CommandLineArgsDisabled,
                     IgnoreCertificateErrors = settings.IgnoreCertificateErrors,
@@ -98,11 +98,15 @@ namespace CLRBrowserSourcePlugin.Browser
 
                 CefRuntime.ExecuteProcess(cefMainArgs, browserApp);
                 CefRuntime.Initialize(cefMainArgs, cefSettings, browserApp);
-
-                CefRuntime.RefreshWebPlugins();
                 
                 CefRuntime.RegisterSchemeHandlerFactory("local", null, new AssetSchemeHandlerFactory());
-            });
+                CefRuntime.RegisterSchemeHandlerFactory("http", "absolute", new AssetSchemeHandlerFactory());
+
+                CefRuntime.VisitWebPluginInfo(new BrowserPluginVisitor());
+            }));
+
+            
+
         }
 
         public void Stop()
@@ -118,10 +122,10 @@ namespace CLRBrowserSourcePlugin.Browser
                 {
                     if (!isMultiThreadedMessageLoop)
                     {
-                        dispatcher.InvokeAsync(() => { if (isDoingMessageLoopWork) CefRuntime.DoMessageLoopWork(); });
+                        dispatcher.BeginInvoke(new Action(() => { if (isDoingMessageLoopWork) CefRuntime.DoMessageLoopWork(); }));
                     }
 
-                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+                    GC.Collect(GC.MaxGeneration);
                     GC.WaitForPendingFinalizers();
                     Thread.Sleep(100);
                 }
@@ -146,25 +150,23 @@ namespace CLRBrowserSourcePlugin.Browser
                 API.Instance.Log("BrowserManager::Stop() Unable to dispose of {0} orphaned browser objects", BrowserInstanceCount);
             }
 
-            dispatcher.InvokeAsync(() => { CefRuntime.Shutdown(); });
+            dispatcher.BeginInvoke(new Action(() => { CefRuntime.Shutdown(); }));
             dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
             if (!dispatcherThread.Join(maximumBrowserKillWaitTime))
             {
                 dispatcherThread.Abort();
                 API.Instance.Log("BrowserManager::Stop() Unable to abort dispatcher thread, giving up");
             }
-
-            GC.Collect();
         }
 
         public void Update()
         {
             if (!isMultiThreadedMessageLoop)
             {
-                dispatcher.InvokeAsync(() =>
+                dispatcher.BeginInvoke(new Action(() =>
                 {
                     CefRuntime.DoMessageLoopWork();
-                });
+                }));
             }
         }
 

@@ -104,6 +104,7 @@
     <Compile Include="RemoteBrowser\BrowserDisplayHandler.cs" />
     <Compile Include="RemoteBrowser\BrowserLifeSpanHandler.cs" />
     <Compile Include="RemoteBrowser\BrowserManager.cs" />
+    <Compile Include="RemoteBrowser\BrowserPluginManager.cs" />
     <Compile Include="RemoteBrowser\BrowserPluginVisitor.cs" />
     <Compile Include="RemoteBrowser\BrowserRenderHandler.cs" />
     <Compile Include="BrowserSource.cs" />

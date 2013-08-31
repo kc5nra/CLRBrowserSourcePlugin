@@ -76,6 +76,7 @@ namespace CLRBrowserSourcePlugin.Shared
             public BrowserSourceSettings SourceSettings { get; set; }
             public BrowserInstanceSettings InstanceSettings { get; set; }
             public BrowserRuntimeSettings RuntimeSettings { get; set; }
+            public BrowserPluginSettings PluginSettings { get; set; }
         }
 
         private SerializedSettings serializedSettings;
@@ -135,6 +136,22 @@ namespace CLRBrowserSourcePlugin.Shared
             {
                 serializedSettings.RuntimeSettings.Plugins = new List<BrowserPlugin>();
             }
+            if (serializedSettings.PluginSettings == null)
+            {
+                serializedSettings.PluginSettings = new BrowserPluginSettings();
+            }
+            if (serializedSettings.PluginSettings.CustomPluginDirectories == null)
+            {
+                serializedSettings.PluginSettings.CustomPluginDirectories = new List<String>();
+            }
+            if (serializedSettings.PluginSettings.CustomPluginPaths == null)
+            {
+                serializedSettings.PluginSettings.CustomPluginPaths = new List<String>();
+            }
+            if (serializedSettings.PluginSettings.DisabledPlugins == null)
+            {
+                serializedSettings.PluginSettings.DisabledPlugins = new List<String>();
+            }
             
         }
 
@@ -167,6 +184,11 @@ namespace CLRBrowserSourcePlugin.Shared
         public BrowserRuntimeSettings RuntimeSettings
         {
             get { return serializedSettings.RuntimeSettings; }
+        }
+
+        public BrowserPluginSettings PluginSettings
+        {
+            get { return serializedSettings.PluginSettings; }
         }
 
         public static BrowserSettings Instance
@@ -647,6 +669,14 @@ namespace CLRBrowserSourcePlugin.Shared
 
         #endregion
 
+    }
+
+    [Serializable]
+    public class BrowserPluginSettings
+    {
+        public List<String> CustomPluginDirectories;
+        public List<String> CustomPluginPaths;
+        public List<String> DisabledPlugins;
     }
 
     [Serializable]

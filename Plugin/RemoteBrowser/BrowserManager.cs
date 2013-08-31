@@ -37,6 +37,8 @@ namespace CLRBrowserSourcePlugin.Browser
 
         #endregion
 
+        internal BrowserPluginManager PluginManager { get; private set; }
+
         private Thread dispatcherThread;
         private Dispatcher dispatcher;
 
@@ -45,7 +47,7 @@ namespace CLRBrowserSourcePlugin.Browser
 
         private bool isMultiThreadedMessageLoop;
 
-        private long browserInstanceCount;
+        private long browserInstanceCount;  
 
         public BrowserManager()
         {
@@ -61,10 +63,14 @@ namespace CLRBrowserSourcePlugin.Browser
             dispatcherThread.Start();
 
             dispatcherReadyEvent.WaitOne();
+
+            PluginManager = new BrowserPluginManager();
         }
 
         public void Start()
         {
+            ManualResetEventSlim disposedEvent = new ManualResetEventSlim();
+
             dispatcher.Invoke(new Action(() =>
             {
                 CefRuntime.Load();
@@ -101,11 +107,9 @@ namespace CLRBrowserSourcePlugin.Browser
                 
                 CefRuntime.RegisterSchemeHandlerFactory("local", null, new AssetSchemeHandlerFactory());
                 CefRuntime.RegisterSchemeHandlerFactory("http", "absolute", new AssetSchemeHandlerFactory());
-
-                CefRuntime.VisitWebPluginInfo(new BrowserPluginVisitor());
             }));
 
-            
+            PluginManager.Initialize();
 
         }
 

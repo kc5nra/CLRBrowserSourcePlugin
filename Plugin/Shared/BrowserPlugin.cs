@@ -39,5 +39,25 @@ namespace CLRBrowserSourcePlugin.Shared
             Path = webPluginInfo.Path;
             Version = webPluginInfo.Version;
         }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is BrowserPlugin))
+            {
+                return false;
+            }
+
+            BrowserPlugin other = obj as BrowserPlugin;
+
+            return (Name == other.Name &&
+                Description == other.Description &&
+                Path == other.Path &&
+                Version == other.Version);
+        }
+
+        public override int GetHashCode()
+        {
+            return Name.GetHashCode() ^ Description.GetHashCode() ^ Path.GetHashCode() ^ Version.GetHashCode();
+        }
     }
 }

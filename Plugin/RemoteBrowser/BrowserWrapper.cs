@@ -32,7 +32,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
         private BrowserClient browserClient;
         private CefBrowser browser;
-        private CefBrowserHost browserHost;
         public BrowserConfig BrowserConfig { get; private set; }
 
 

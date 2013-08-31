@@ -125,7 +125,6 @@
     <Compile Include="Shared\BrowserConfig.cs" />
     <Compile Include="Shared\BrowserPlugin.cs" />
     <Compile Include="Shared\BrowserSettings.cs" />
-    <Compile Include="Shared\CefPluginInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CLRHostPlugin\CLRHostInterop\CLRHostInterop.vcxproj">

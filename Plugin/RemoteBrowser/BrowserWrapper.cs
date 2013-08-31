@@ -26,8 +26,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public BrowserStatus Status { get; private set; }
         
-        private bool isDisposed;
-
         private bool hasPendingClose;
 
         private BrowserClient browserClient;
@@ -37,14 +35,11 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public BrowserWrapper()
         {
-            isDisposed = false;
-
             Status = BrowserStatus.Initial;
 
             hasPendingClose = false;
             browserClient = null;
             browser = null;
-            browserHost = null;
         }
 
         private void InitClient(BrowserSource browserSource)
@@ -261,10 +256,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
             UninitClient();
         }
-
-        #endregion
-
-        #region Properties
 
         #endregion
     }

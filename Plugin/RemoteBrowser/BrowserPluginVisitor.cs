@@ -12,9 +12,8 @@ using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.RemoteBrowser
 {
-
     // Whacky shit to get around the fact that it never calls this visitor if there are no plugins...
-    class BrowserPluginVisitor : CefWebPluginInfoVisitor
+    internal class BrowserPluginVisitor : CefWebPluginInfoVisitor
     {
         private ManualResetEventSlim disposedEvent;
         private Action<CefWebPluginInfo> action;
@@ -37,12 +36,12 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             base.Dispose(disposing);
         }
 
-        public static void Visit(Action<CefWebPluginInfo> action) 
+        public static void Visit(Action<CefWebPluginInfo> action)
         {
             ManualResetEventSlim disposedEvent = new ManualResetEventSlim();
 
             // Needs to be run on a different thread or else it will lock up and never release the object
-            BrowserManager.Instance.Dispatcher.BeginInvoke(new Action(() =>
+            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
             {
                 CefRuntime.VisitWebPluginInfo(new BrowserPluginVisitor(disposedEvent, action));
             }));

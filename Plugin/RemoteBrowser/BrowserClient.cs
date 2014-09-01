@@ -10,12 +10,10 @@ namespace CLRBrowserSourcePlugin.Browser
 {
     internal class BrowserClient : CefClient
     {
-        private bool isDisposed;
-
         public BrowserLifeSpanHandler LifeSpanHandler { get; set; }
         public BrowserDisplayHandler DisplayHandler { get; set; }
         public BrowserRenderHandler RenderHandler { get; set; }
-
+        
         public BrowserClient()
         {
             

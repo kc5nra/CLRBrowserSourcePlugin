@@ -10,10 +10,6 @@ namespace CLRBrowserSourcePlugin.Browser
 {
     internal class BrowserDisplayHandler : CefDisplayHandler
     {
-        protected override void OnLoadingStateChange(CefBrowser browser, bool isLoading, bool canGoBack, bool canGoForward)
-        {
-        }
-
         protected override void OnAddressChange(CefBrowser browser, CefFrame frame, string url)
         {
         }

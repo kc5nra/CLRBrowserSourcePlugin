@@ -40,23 +40,25 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
         private BrowserConfig config;
 
         private Uri uri;
-        
+
         private String resolvedPath;
         private Stream inputStream;
 
         private Boolean isAssetWrapping;
 
         private bool isComplete;
+        private bool isFirstRead;
         private long length;
         private long remaining;
+        private String cssInject;
 
         public AssetSchemeHandler(BrowserConfig config, CefRequest request)
         {
             this.config = config;
             isComplete = false;
-
+            isFirstRead = false;
             length = remaining = -1;
-            
+            cssInject = "<style>" + config.BrowserSourceSettings.CSS + "</style>";
         }
 
         protected override void GetResponseHeaders(CefResponse response, out long responseLength, out string redirectUrl)
@@ -69,7 +71,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             }
 
             String extension = Path.GetExtension(uri.LocalPath);
-            if (extension.Length > 1 && extension.StartsWith(".")) {
+            if (extension.Length > 1 && extension.StartsWith("."))
+            {
                 extension = extension.Substring(1);
             }
 
@@ -97,9 +100,30 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             {
                 uri = new Uri(request.Url);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 API.Instance.Log("AssetSchemeHandler::ProcessRequest: Unable to parse path {0}", request.Url);
+                return false;
+            }
+
+            Uri relativeUrl = new Uri(config.BrowserSourceSettings.Url);
+
+            if (relativeUrl.LocalPath.Length == 1)
+            {
+                API.Instance.Log("AssetSchemeHandler::ProcessRequest: Invalid url (this shouldn't happen) {0}", relativeUrl);
+                return false;
+            }
+
+            String relativePath = relativeUrl.LocalPath.Substring(1);
+            String filename;
+            try
+            {
+                filename = Path.GetFileName(relativePath);
+                relativePath = Path.GetDirectoryName(relativePath);
+            }
+            catch (ArgumentException)
+            {
+                API.Instance.Log("AssetSchemeHandler::ProcessRequest: Unable to create absolute path from {0} and {1}", relativeUrl.LocalPath, uri.LocalPath);
                 return false;
             }
 
@@ -107,16 +131,15 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             {
                 isAssetWrapping = true;
                 String resolvedTemplate = config.BrowserSourceSettings.Template;
-                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", config.BrowserSourceSettings.Url);
+                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", filename);
                 resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
                 resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
                 inputStream = new MemoryStream(Encoding.UTF8.GetBytes(resolvedTemplate));
-                
             }
             else
             {
                 isAssetWrapping = false;
-
+                
                 if (uri.LocalPath != null && uri.LocalPath.Length > 1)
                 {
                     resolvedPath = uri.LocalPath.Substring(1);
@@ -126,7 +149,15 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                     API.Instance.Log("AssetSchemeHandler::ProcessRequest: Unable to parse path {0}", request.Url);
                     return false;
                 }
-               
+
+                bool isIgnoringIntercept = uri.Query != null && uri.Query.Length != 0;
+
+                // if there is a query param, it should ignore interception
+                if (!isIgnoringIntercept && config.BrowserSourceSettings.IsApplyingTemplate)
+                {
+                    resolvedPath = Path.Combine(relativePath, resolvedPath);
+                }
+
                 try
                 {
                     inputStream = new FileStream(resolvedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -174,9 +205,6 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
 
                 bytesRead = StreamUtils.CopyStream(inputStream, response, bytesToRead);
                 remaining -= bytesRead;
-
-
-                //remaining -= bytesRead;
 
                 if (remaining == 0)
                 {

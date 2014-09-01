@@ -57,7 +57,7 @@ namespace CLRBrowserSourcePlugin.Shared
 
         public override int GetHashCode()
         {
-            return Name.GetHashCode() ^ Description.GetHashCode() ^ Path.GetHashCode() ^ Version.GetHashCode();
+            return Name.GetHashCode() ^ Description.GetHashCode() ^ Path.GetHashCode() ^ ((Version != null) ? Version.GetHashCode() : 0);
         }
     }
 }

@@ -80,7 +80,7 @@ namespace CLRBrowserSourcePlugin.Browser
 
                         if (sharedTextureHandle == IntPtr.Zero)
                         {
-                            API.Instance.Log("BrowserRenderHandler::OnPaint failed to create texture");
+                            //texture has not been created yet, try again on the next paint
                             return;
                         }
 
@@ -114,7 +114,10 @@ namespace CLRBrowserSourcePlugin.Browser
         protected override void OnCursorChange(CefBrowser browser, IntPtr cursorHandle)
         {
         }
-
+        
+        protected override void OnScrollOffsetChanged(CefBrowser browser)
+        {
+        }
         
         public void Cleanup()
         {

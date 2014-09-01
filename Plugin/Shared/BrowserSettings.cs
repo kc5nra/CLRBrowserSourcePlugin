@@ -1,18 +1,17 @@
-﻿using System;
+﻿using CLROBS;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
-using Xilium.CefGlue;
-
-using CLROBS;
 using System.Web.Script.Serialization;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Collections.ObjectModel;
-using System.Runtime.Serialization;
+using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.Shared
 {
@@ -21,7 +20,6 @@ namespace CLRBrowserSourcePlugin.Shared
     {
         public void MergeWith(AbstractSettings secondary)
         {
-
             PropertyDescriptorCollection thisPropertyDescriptors = TypeDescriptor.GetProperties(this);
             PropertyDescriptorCollection secondaryPropertyDescriptors = TypeDescriptor.GetProperties(secondary);
             for (int i = 0; i < thisPropertyDescriptors.Count; i++)
@@ -74,8 +72,11 @@ namespace CLRBrowserSourcePlugin.Shared
         public class SerializedSettings
         {
             public BrowserSourceSettings SourceSettings { get; set; }
+
             public BrowserInstanceSettings InstanceSettings { get; set; }
+
             public BrowserRuntimeSettings RuntimeSettings { get; set; }
+
             public BrowserPluginSettings PluginSettings { get; set; }
         }
 
@@ -106,7 +107,6 @@ namespace CLRBrowserSourcePlugin.Shared
                 using (var reader = new StreamReader(settingsLocation))
                 {
                     serializedSettings = serializer.Deserialize<SerializedSettings>(reader.ReadToEnd());
-
                 };
             }
             catch (Exception)
@@ -152,7 +152,6 @@ namespace CLRBrowserSourcePlugin.Shared
             {
                 serializedSettings.PluginSettings.DisabledPlugins = new List<String>();
             }
-            
         }
 
         public void Save()
@@ -205,9 +204,10 @@ namespace CLRBrowserSourcePlugin.Shared
         }
     }
 
-    class JsonHelper
+    internal class JsonHelper
     {
         private const string INDENT_STRING = "    ";
+
         public static string FormatJson(string str)
         {
             var indent = 0;
@@ -227,6 +227,7 @@ namespace CLRBrowserSourcePlugin.Shared
                             Enumerable.Range(0, ++indent).ForEach(item => sb.Append(INDENT_STRING));
                         }
                         break;
+
                     case '}':
                     case ']':
                         if (!quoted)
@@ -236,6 +237,7 @@ namespace CLRBrowserSourcePlugin.Shared
                         }
                         sb.Append(ch);
                         break;
+
                     case '"':
                         sb.Append(ch);
                         bool escaped = false;
@@ -245,6 +247,7 @@ namespace CLRBrowserSourcePlugin.Shared
                         if (!escaped)
                             quoted = !quoted;
                         break;
+
                     case ',':
                         sb.Append(ch);
                         if (!quoted)
@@ -253,11 +256,13 @@ namespace CLRBrowserSourcePlugin.Shared
                             Enumerable.Range(0, indent).ForEach(item => sb.Append(INDENT_STRING));
                         }
                         break;
+
                     case ':':
                         sb.Append(ch);
                         if (!quoted)
                             sb.Append(" ");
                         break;
+
                     default:
                         sb.Append(ch);
                         break;
@@ -267,7 +272,7 @@ namespace CLRBrowserSourcePlugin.Shared
         }
     }
 
-    static class Extensions
+    internal static class Extensions
     {
         public static void ForEach<T>(this IEnumerable<T> ie, Action<T> action)
         {
@@ -321,12 +326,21 @@ namespace CLRBrowserSourcePlugin.Shared
         }
 
         public bool IsApplyingTemplate { get; set; }
+
         public bool IsShowingAdvancedProperties { get; set; }
+
         public String Url { get; set; }
+
         public int Width { get; set; }
+
         public int Height { get; set; }
+
+        public int Fps { get; set; }
+
         public String CSS { get; set; }
+
         public String Template { get; set; }
+
         public double Opacity { get; set; }
     }
 
@@ -406,9 +420,10 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls the loading of fonts from remote sources.")]
         public CefState RemoteFonts { get; set; }
 
-        #endregion
+        #endregion Font
 
         #region Misc
+
         /// <summary>
         /// Default encoding for Web content. If empty "ISO-8859-1" will be used. Also
         /// configurable using the "default-encoding" command-line switch.
@@ -417,14 +432,6 @@ namespace CLRBrowserSourcePlugin.Shared
         [Category("Miscellaneous")]
         [Description("Default encoding for Web content. If empty 'ISO-8859-1' will be used.")]
         public string DefaultEncoding { get; set; }
-
-        /// <summary>
-        /// Location of the user style sheet that will be used for all pages. This must
-        /// be a data URL of the form "data:text/css;charset=utf-8;base64,csscontent"
-        /// where "csscontent" is the base64 encoded contents of the CSS file. Also
-        /// configurable using the "user-style-sheet-location" command-line switch.
-        /// </summary>
-        //public string UserStyleSheetLocation { get { return ""; } }
 
         /// <summary>
         /// Controls whether the tab key can advance focus to links. Also configurable
@@ -438,25 +445,7 @@ namespace CLRBrowserSourcePlugin.Shared
         /// </summary>
         //public CefState TextAreaResize { get { return CefState.Default; } }
 
-        /// <summary>
-        /// Controls whether style sheets can be used. Also configurable using the
-        /// "disable-author-and-user-styles" command-line switch.
-        /// </summary>
-        [DefaultValue(CefState.Default)]
-        [Category("Miscellaneous")]
-        [Description("Controls whether style sheets can be used.")]
-        public CefState AuthorAndUserStyles { get; set; }
-
-        /// <summary>
-        /// Controls whether developer tools (WebKit inspector) can be used. Also
-        /// configurable using the "disable-developer-tools" command-line switch.
-        /// </summary>
-        [DefaultValue(CefState.Default)]
-        [Category("Miscellaneous")]
-        [Description("Controls whether developer tools (WebKit inspector) can be used.")]
-        public CefState DeveloperTools { get; set; }
-
-        #endregion
+        #endregion Misc
 
         #region JavaScript
 
@@ -519,7 +508,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether the caret position will be drawn.")]
         public CefState CaretBrowsing { get; set; }
 
-        #endregion
+        #endregion JavaScript
 
         #region Plugin
 
@@ -541,7 +530,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether the Java plugin will be loaded.")]
         public CefState Java { get; set; }
 
-        #endregion
+        #endregion Plugin
 
         #region Security
 
@@ -574,7 +563,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether web security restrictions (same-origin policy) will be enforced. Disabling this setting is not recommend as it will allow risky security behavior such as cross-site scripting (XSS).")]
         public CefState WebSecurity { get; set; }
 
-        #endregion
+        #endregion Security
 
         #region Images
 
@@ -598,7 +587,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether standalone images will be shrunk to fit the page.")]
         public CefState ImageShrinkStandaloneToFit { get; set; }
 
-        #endregion
+        #endregion Images
 
         #region Storage
 
@@ -620,7 +609,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether databases can be used.")]
         public CefState Databases { get; set; }
 
-        #endregion
+        #endregion Storage
 
         #region Cache
 
@@ -642,7 +631,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether the application cache can be used.")]
         public CefState ApplicationCache { get; set; }
 
-        #endregion
+        #endregion Cache
 
         #region Hardware Support
 
@@ -656,19 +645,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Controls whether WebGL can be used. Note that WebGL requires hardware support and may not work on all systems even when enabled.")]
         public CefState WebGL { get; set; }
 
-        /// <summary>
-        /// Controls whether content that depends on accelerated compositing can be
-        /// used. Note that accelerated compositing requires hardware support and may
-        /// not work on all systems even when enabled. Also configurable using the
-        /// "disable-accelerated-compositing" command-line switch.
-        /// </summary>
-        [DefaultValue(CefState.Default)]
-        [Category("Hardware Support")]
-        [Description("Controls whether content that depends on accelerated compositing can be used. Note that accelerated compositing requires hardware support and may not work on all systems even when enabled.")]
-        public CefState AcceleratedCompositing { get; set; }
-
-        #endregion
-
+        #endregion Hardware Support
     }
 
     [Serializable]
@@ -682,13 +659,12 @@ namespace CLRBrowserSourcePlugin.Shared
     [Serializable]
     public class BrowserRuntimeSettings
     {
-
         private List<BrowserPlugin> plugins;
 
         public BrowserRuntimeSettings()
         {
             PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(this);
-            for(int i = 0; i < properties.Count; i++)
+            for (int i = 0; i < properties.Count; i++)
             {
                 DefaultValueAttribute attr = properties[i].Attributes[typeof(DefaultValueAttribute)] as DefaultValueAttribute;
                 if (attr == null) continue;
@@ -763,7 +739,7 @@ namespace CLRBrowserSourcePlugin.Shared
             get { return this.plugins.AsReadOnly(); }
         }
 
-        #endregion
+        #endregion Core Settings
 
         #region Resources
 
@@ -802,9 +778,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("The fully qualified path for the resources directory. If this value is empty the cef.pak and/or devtools_resources.pak files must be located in the module directory.")]
         public string ResourcesDirPath { get; set; }
 
-        
-
-        #endregion
+        #endregion Resources
 
         #region Locale
 
@@ -832,8 +806,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("The fully qualified path for the locales directory. If this value is empty the locales directory must be located in the module directory.")]
         public string LocalesDirPath { get; set; }
 
-
-        #endregion
+        #endregion Locale
 
         #region Behavior
 
@@ -858,7 +831,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Value that will be inserted as the product portion of the default User-Agent string. If empty the Chromium product version will be used. If UserAgent is specified this value will be ignored.")]
         public string ProductVersion { get; set; }
 
-        #endregion
+        #endregion Behavior
 
         #region Security
 
@@ -874,7 +847,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Set to true (1) to ignore errors related to invalid SSL certificates. Enabling this setting can lead to potential security vulnerabilities like 'man in the middle' attacks. Applications that load content from the internet should not enable this setting.")]
         public bool IgnoreCertificateErrors { get; set; }
 
-        #endregion
+        #endregion Security
 
         #region Logging
 
@@ -900,7 +873,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("The log severity. Only messages of this severity level or higher will be logged. Verbose < Info < Warning < Error < ErrorReport < Disable")]
         public CefLogSeverity LogSeverity { get; set; }
 
-        #endregion
+        #endregion Logging
 
         #region Debugging
 
@@ -937,7 +910,7 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("The number of stack trace frames to capture for uncaught exceptions. Specify a positive value to enable the OnUncaughtException() callback. Specify 0 (default value) to disable.")]
         public int UncaughtExceptionStackSize { get; set; }
 
-        #endregion
+        #endregion Debugging
 
         #region JavaScript
 
@@ -951,7 +924,6 @@ namespace CLRBrowserSourcePlugin.Shared
         [Description("Custom flags that will be used when initializing the V8 JavaScript engine. The consequences of using custom flags may not be well tested.")]
         public string JavaScriptFlags { get; set; }
 
-        #endregion
-
+        #endregion JavaScript
     }
 }

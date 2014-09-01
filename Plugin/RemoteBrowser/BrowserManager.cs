@@ -1,25 +1,26 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.RemoteBrowser;
+using CLRBrowserSourcePlugin.Shared;
+using CLROBS;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.ExceptionServices;
+using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
-using CLROBS;
-using CLRBrowserSourcePlugin.Shared;
-
-using Xilium.CefGlue;
-using System.Windows.Threading;
-using CLRBrowserSourcePlugin.RemoteBrowser;
 using System.Windows;
-using System.Diagnostics;
+using System.Windows.Threading;
+using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
     internal sealed class BrowserManager
     {
         #region Singleton
+
         private static BrowserManager instance;
 
         public static BrowserManager Instance
@@ -35,7 +36,7 @@ namespace CLRBrowserSourcePlugin.Browser
             }
         }
 
-        #endregion
+        #endregion Singleton
 
         internal BrowserPluginManager PluginManager { get; private set; }
 
@@ -46,8 +47,9 @@ namespace CLRBrowserSourcePlugin.Browser
         private Dictionary<int, BrowserWrapper> browserMap;
 
         private bool isMultiThreadedMessageLoop;
+        private bool isSingleProcess;
 
-        private long browserInstanceCount;  
+        private long browserInstanceCount;
 
         public BrowserManager()
         {
@@ -71,17 +73,18 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             ManualResetEventSlim disposedEvent = new ManualResetEventSlim();
 
-            dispatcher.Invoke(new Action(() =>
+            dispatcher.InvokeAsync(new Action(() =>
             {
                 CefRuntime.Load();
                 CefMainArgs cefMainArgs = new CefMainArgs(IntPtr.Zero, new String[0]);
                 BrowserRuntimeSettings settings = BrowserSettings.Instance.RuntimeSettings;
 
                 isMultiThreadedMessageLoop = settings.MultiThreadedMessageLoop;
+                isSingleProcess = BrowserSettings.Instance.RuntimeSettings.SingleProcess;
 
                 CefSettings cefSettings = new CefSettings
                 {
-                    BrowserSubprocessPath = @"plugins\CLRHostPlugin\CLRBrowserSourcePlugin\CLRBrowserSourcePipe.exe",
+                    BrowserSubprocessPath = @"plugins\CLRHostPlugin\CLRBrowserSourcePlugin\CLRBrowserSourceClient.exe",
                     CachePath = settings.CachePath,
                     CommandLineArgsDisabled = settings.CommandLineArgsDisabled,
                     IgnoreCertificateErrors = settings.IgnoreCertificateErrors,
@@ -90,76 +93,117 @@ namespace CLRBrowserSourcePlugin.Browser
                     LocalesDirPath = settings.LocalesDirPath,
                     LogFile = settings.LogFile,
                     LogSeverity = settings.LogSeverity,
-                    MultiThreadedMessageLoop = settings.MultiThreadedMessageLoop,
+                    MultiThreadedMessageLoop = false,
                     PersistSessionCookies = settings.PersistSessionCookies,
                     ProductVersion = settings.ProductVersion,
-                    ReleaseDCheckEnabled = settings.ReleaseDCheckEnabled,
                     RemoteDebuggingPort = settings.RemoteDebuggingPort,
                     ResourcesDirPath = settings.ResourcesDirPath,
                     SingleProcess = settings.SingleProcess,
-                    UncaughtExceptionStackSize = settings.UncaughtExceptionStackSize
+                    UncaughtExceptionStackSize = settings.UncaughtExceptionStackSize,
+                    WindowlessRenderingEnabled = true
                 };
 
                 BrowserApp browserApp = new BrowserApp(settings.CommandLineArgsDisabled ? new String[0] : settings.CommandLineArguments);
 
-                CefRuntime.ExecuteProcess(cefMainArgs, browserApp);
-                CefRuntime.Initialize(cefMainArgs, cefSettings, browserApp);
-                
+                CefRuntime.ExecuteProcess(cefMainArgs, browserApp, IntPtr.Zero);
+                CefRuntime.Initialize(cefMainArgs, cefSettings, browserApp, IntPtr.Zero);
+
                 CefRuntime.RegisterSchemeHandlerFactory("local", null, new AssetSchemeHandlerFactory());
                 CefRuntime.RegisterSchemeHandlerFactory("http", "absolute", new AssetSchemeHandlerFactory());
+                CefRuntime.RunMessageLoop();
+                CefRuntime.Shutdown();
             }));
 
-            PluginManager.Initialize();
-
+            //PluginManager.Initialize();
         }
 
         public void Stop()
         {
-
-            int maximumBrowserKillWaitTime = BrowserSettings.Instance.RuntimeSettings.MaximumBrowserKillWaitTime;
-
-            bool isDoingMessageLoopWork = true;
-
-            Thread shutdownThread = new Thread(new ThreadStart(() =>
+            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
             {
-                while (BrowserInstanceCount > 0)
-                {
-                    if (!isMultiThreadedMessageLoop)
-                    {
-                        dispatcher.BeginInvoke(new Action(() => { if (isDoingMessageLoopWork) CefRuntime.DoMessageLoopWork(); }));
-                    }
-
-                    GC.Collect(GC.MaxGeneration);
-                    GC.WaitForPendingFinalizers();
-                    Thread.Sleep(100);
-                }
+                CefRuntime.QuitMessageLoop();
             }));
 
-            shutdownThread.Start();
-                       
-            while (!shutdownThread.Join(maximumBrowserKillWaitTime))
+            Dispatcher.InvokeShutdown();
+
+            int browserMapCount = browserMap.Count;
+            if (browserMapCount != 0)
             {
-                MessageBoxResult result = MessageBox.Show("Would you like to continue waiting? \r\nNo will forcefully abort the clients and may result in unexpected behavior.", "Shutting down the browser instances is taking longer than usual.", MessageBoxButton.YesNo);
-                if (result == MessageBoxResult.No)
+                throw new CefRuntimeException(String.Format(
+                    "After shutting down {0} browser instances were undisposed",
+                    browserMapCount));
+            }
+
+            dispatcher = null;
+            //int maximumBrowserKillWaitTime = BrowserSettings.Instance.RuntimeSettings.MaximumBrowserKillWaitTime;
+
+            //bool isDoingMessageLoopWork = true;
+
+            //Thread shutdownThread = new Thread(new ThreadStart(() =>
+            //{
+            //    while (BrowserInstanceCount > 0)
+            //    {
+            //        if (!isMultiThreadedMessageLoop)
+            //        {
+            //            dispatcher.BeginInvoke(new Action(() => { if (isDoingMessageLoopWork) CefRuntime.DoMessageLoopWork(); }));
+            //        }
+
+            //        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+            //        GC.WaitForPendingFinalizers();
+            //        Thread.Sleep(100);
+            //    }
+            //}));
+
+            //shutdownThread.Start();
+
+            //while (!shutdownThread.Join(maximumBrowserKillWaitTime))
+            //{
+            //    MessageBoxResult result = MessageBox.Show("Would you like to continue waiting? \r\nNo will forcefully abort the clients and may result in unexpected behavior.", "Shutting down the browser instances is taking longer than usual.", MessageBoxButton.YesNo);
+            //    if (result == MessageBoxResult.No)
+            //    {
+            //        shutdownThread.Abort();
+            //        API.Instance.Log("BrowserManager::Stop() Aborting shutdown thread due to timeout.");
+            //    }
+            //}
+
+            //isDoingMessageLoopWork = false;
+
+            //if (BrowserInstanceCount > 0)
+            //{
+            //    API.Instance.Log("BrowserManager::Stop() Unable to dispose of {0} orphaned browser objects", BrowserInstanceCount);
+            //}
+
+            //dispatcher.BeginInvoke(new Action(() =>
+            //{
+            //    PrivateShutdown();
+            //}));
+
+            //dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
+            //if (!dispatcherThread.Join(maximumBrowserKillWaitTime))
+            //{
+            //    dispatcherThread.Abort();
+            //    API.Instance.Log("BrowserManager::Stop() Unable to abort dispatcher thread, giving up");
+            //}
+        }
+
+        [HandleProcessCorruptedStateExceptions]
+        [SecurityCritical]
+        private void PrivateShutdown()
+        {
+            try
+            {
+                CefRuntime.Shutdown();
+            }
+            catch (AccessViolationException e)
+            {
+                if (isSingleProcess)
                 {
-                    shutdownThread.Abort();
-                    API.Instance.Log("BrowserManager::Stop() Aborting shutdown thread due to timeout.");
+                    API.Instance.Log("BrowserManager::Stop() Failed shutting down with exception {0}.  This is a known bug in CEF SingleProcess mode. Try setting SingleProcess to false in Runtime Settings if possible.", e.ToString());
                 }
-            }
-
-            isDoingMessageLoopWork = false;
-
-            if (BrowserInstanceCount > 0)
-            {
-                API.Instance.Log("BrowserManager::Stop() Unable to dispose of {0} orphaned browser objects", BrowserInstanceCount);
-            }
-
-            dispatcher.BeginInvoke(new Action(() => { CefRuntime.Shutdown(); }));
-            dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
-            if (!dispatcherThread.Join(maximumBrowserKillWaitTime))
-            {
-                dispatcherThread.Abort();
-                API.Instance.Log("BrowserManager::Stop() Unable to abort dispatcher thread, giving up");
+                if (isMultiThreadedMessageLoop)
+                {
+                    API.Instance.Log("BrowserManager::Stop() Failed shutting down with exception {0}.  This is a known bug in CEF MultiThreadedMessageLoop mode. Try setting MultiThreadedMessageLoop to false in Runtime Settings if possible.", e.ToString());
+                }
             }
         }
 
@@ -173,7 +217,6 @@ namespace CLRBrowserSourcePlugin.Browser
                 }));
             }
         }
-
 
         public Dispatcher Dispatcher
         {
@@ -201,7 +244,7 @@ namespace CLRBrowserSourcePlugin.Browser
             }
         }
 
-        public void RegisterBrowser(int browserIdentifier, BrowserWrapper browserWrapper) 
+        public void RegisterBrowser(int browserIdentifier, BrowserWrapper browserWrapper)
         {
             lock (browserMapLock)
             {
@@ -224,6 +267,5 @@ namespace CLRBrowserSourcePlugin.Browser
                 browserMap.Remove(browserIdentifier);
             }
         }
-
     }
 }

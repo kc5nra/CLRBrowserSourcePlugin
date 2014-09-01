@@ -1,15 +1,13 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.Shared;
+using CLROBS;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-
-using CLRBrowserSourcePlugin.Shared;
-
-using Xilium.CefGlue;
-using System.Diagnostics;
-using CLROBS;
 using System.Threading;
+using System.Threading.Tasks;
+using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
@@ -25,13 +23,13 @@ namespace CLRBrowserSourcePlugin.Browser
         }
 
         public BrowserStatus Status { get; private set; }
-        
+
         private bool hasPendingClose;
 
         private BrowserClient browserClient;
         private CefBrowser browser;
-        public BrowserConfig BrowserConfig { get; private set; }
 
+        public BrowserConfig BrowserConfig { get; private set; }
 
         public BrowserWrapper()
         {
@@ -66,8 +64,9 @@ namespace CLRBrowserSourcePlugin.Browser
 
             browserClient.RenderHandler.Cleanup();
             browserClient.RenderHandler = null;
-        }
 
+            browserClient = null;
+        }
 
         public bool CreateBrowser(BrowserSource browserSource, BrowserConfig browserConfig)
         {
@@ -81,30 +80,26 @@ namespace CLRBrowserSourcePlugin.Browser
             BrowserConfig = browserConfig;
 
             CefWindowInfo windowInfo = CefWindowInfo.Create();
-            windowInfo.TransparentPainting = true;
-            windowInfo.SetAsOffScreen(IntPtr.Zero);
             windowInfo.Width = (int)browserConfig.BrowserSourceSettings.Width;
             windowInfo.Height = (int)browserConfig.BrowserSourceSettings.Height;
-            windowInfo.MenuHandle = IntPtr.Zero;
-            windowInfo.ParentHandle = IntPtr.Zero;
+            windowInfo.SetAsWindowless(IntPtr.Zero, true);
 
-            String base64EncodedDataUri = "data:text/css;charset=utf-8;base64,";
-            String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(browserConfig.BrowserSourceSettings.CSS));
-            
+            //String base64EncodedDataUri = "data:text/css;charset=utf-8;base64,";
+            //String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(browserConfig.BrowserSourceSettings.CSS));
+
             BrowserInstanceSettings settings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
             settings.MergeWith(browserConfig.BrowserInstanceSettings);
-            
-            CefBrowserSettings browserSettings = new CefBrowserSettings {
-                AcceleratedCompositing = settings.AcceleratedCompositing,
+
+            CefBrowserSettings browserSettings = new CefBrowserSettings
+            {
+                WindowlessFrameRate = browserConfig.BrowserSourceSettings.Fps,
                 ApplicationCache = settings.ApplicationCache,
-                AuthorAndUserStyles = settings.AuthorAndUserStyles,
                 CaretBrowsing = settings.CaretBrowsing,
                 CursiveFontFamily = settings.CursiveFontFamily,
                 Databases = settings.Databases,
                 DefaultEncoding = settings.DefaultEncoding,
                 DefaultFixedFontSize = settings.DefaultFixedFontSize,
                 DefaultFontSize = settings.DefaultFontSize,
-                DeveloperTools = settings.DeveloperTools,
                 FantasyFontFamily = settings.FantasyFontFamily,
                 FileAccessFromFileUrls = settings.FileAccessFromFileUrls,
                 FixedFontFamily = settings.FixedFontFamily,
@@ -119,7 +114,6 @@ namespace CLRBrowserSourcePlugin.Browser
                 LocalStorage = settings.LocalStorage,
                 MinimumFontSize = settings.MinimumFontSize,
                 MinimumLogicalFontSize = settings.MinimumLogicalFontSize,
-                PageCache = settings.PageCache,
                 Plugins = settings.Plugins,
                 RemoteFonts = settings.RemoteFonts,
                 SansSerifFontFamily = settings.SansSerifFontFamily,
@@ -128,9 +122,8 @@ namespace CLRBrowserSourcePlugin.Browser
                 //TabToLinks = settings.TabToLinks,
                 //TextAreaResize = settings.TextAreaResize,
                 UniversalAccessFromFileUrls = settings.UniversalAccessFromFileUrls,
-                UserStyleSheetLocation = base64EncodedDataUri + base64EncodedCss,
                 WebGL = settings.WebGL,
-                WebSecurity = settings.WebSecurity,
+                WebSecurity = settings.WebSecurity
             };
 
             String url = browserConfig.BrowserSourceSettings.Url;
@@ -152,7 +145,7 @@ namespace CLRBrowserSourcePlugin.Browser
                 // Since the event methods can be called before the next statement
                 // set the status before we call it
                 Status = BrowserStatus.Creating;
-                CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, url);
+                CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, new Uri(url));
             }
             catch (InvalidOperationException e)
             {
@@ -166,15 +159,15 @@ namespace CLRBrowserSourcePlugin.Browser
             return true;
         }
 
-        private void DoCloseBrowser(bool isForcingClose)
-        {
+        //private void DoCloseBrowser(bool isForcingClose)
+        //{
+        //}
 
-        }
         public void CloseBrowser(bool isForcingClose)
         {
             // the renderer doesn't need to communicate with the browser source
             // after it has been closed
-            // this avoids a problem where the browser source gets disposed before it 
+            // this avoids a problem where the browser source gets disposed before it
             // has completed it's shutdown sequence
             browserClient.RenderHandler.Cleanup();
 
@@ -187,13 +180,15 @@ namespace CLRBrowserSourcePlugin.Browser
             {
                 Debug.Assert(browser != null);
                 Status = BrowserStatus.Closing;
-                BrowserManager.Instance.Dispatcher.Invoke(new Action(() => { browser.GetHost().CloseBrowser(isForcingClose); }));
+                CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
+                {
+                    browser.GetHost().CloseBrowser(isForcingClose);
+                }));
             }
         }
 
         public bool Size(ref CefRectangle rect)
         {
-
             rect.X = 0;
             rect.Y = 0;
             rect.Width = BrowserConfig.BrowserSourceSettings.Width;
@@ -207,7 +202,6 @@ namespace CLRBrowserSourcePlugin.Browser
         // AfterCreated event
         public void AfterCreated(CefBrowser browser)
         {
-
             Debug.Assert(this.browser == null);
             Debug.Assert(browser != null);
 
@@ -231,7 +225,7 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             Debug.Assert(browser != null);
 
-            browser.GetHost().ParentWindowWillClose();
+            //browser.GetHost().ParentWindowWillClose();
 
             Debug.Assert(Status == BrowserStatus.Created || Status == BrowserStatus.Closing);
 
@@ -257,6 +251,6 @@ namespace CLRBrowserSourcePlugin.Browser
             UninitClient();
         }
 
-        #endregion
+        #endregion Events
     }
 }

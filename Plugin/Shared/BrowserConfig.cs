@@ -1,17 +1,17 @@
-﻿using System;
+﻿using CLROBS;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
-
-using CLROBS;
 using System.Web.Script.Serialization;
 
 namespace CLRBrowserSourcePlugin.Shared
 {
-    class BrowserConfig
+    internal class BrowserConfig
     {
-
         public void Reload(XElement element)
         {
             JavaScriptSerializer serializer = new JavaScriptSerializer();
@@ -19,26 +19,63 @@ namespace CLRBrowserSourcePlugin.Shared
             BrowserSourceSettings = AbstractSettings.DeepClone(BrowserSettings.Instance.SourceSettings);
             BrowserInstanceSettings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
 
-            String instanceSettingsString = element.GetString("instanceSettings");
-            String sourceSettingsString = element.GetString("sourceSettings");
-
-            if (sourceSettingsString != null && sourceSettingsString.Count() > 0)
+            try
             {
-                try
+                byte[] instanceSettingsBytes = Convert.FromBase64String(
+                    element.GetString("instanceSettings"));
+                byte[] sourceSettingsBytes = Convert.FromBase64String(
+                    element.GetString("sourceSettings"));
+
+                string instanceSettingsString = Encoding.UTF8.GetString(
+                    instanceSettingsBytes);
+
+                string sourceSettingsString = Encoding.UTF8.GetString(
+                    sourceSettingsBytes);
+
+                if (sourceSettingsString != null && sourceSettingsString.Count() > 0)
                 {
-                    BrowserSourceSettings = serializer.Deserialize<BrowserSourceSettings>(sourceSettingsString);
+                    MemoryStream stream = new MemoryStream(
+                        Encoding.UTF8.GetBytes(sourceSettingsString));
+
+                    DataContractJsonSerializer ser =
+                        new DataContractJsonSerializer(
+                            typeof(BrowserSourceSettings));
+
+                    BrowserSourceSettings = ser.ReadObject(stream)
+                        as BrowserSourceSettings;
                 }
-                catch (ArgumentException e)
+
+                if (instanceSettingsString != null && instanceSettingsString.Count() > 0)
                 {
-                    API.Instance.Log("Failed to deserialized source settings and forced to recreate; {0}", e.Message);
+                    BrowserInstanceSettings.MergeWith(serializer.Deserialize<BrowserInstanceSettings>(instanceSettingsString));
+
+                    try
+                    {
+                        MemoryStream stream = new MemoryStream(
+                            Encoding.UTF8.GetBytes(instanceSettingsString));
+
+                        DataContractJsonSerializer ser =
+                            new DataContractJsonSerializer(
+                                typeof(BrowserInstanceSettings));
+                        BrowserInstanceSettings serializedSettings =
+                            ser.ReadObject(stream) as BrowserInstanceSettings;
+
+                        BrowserInstanceSettings.MergeWith(serializedSettings);
+                    }
+                    catch (Exception e)
+                    {
+                        API.Instance.Log(
+                            "Failed to deserialized source settings and forced to recreate");
+                        API.Instance.Log("Exception: {0}", e);
+                    }
                 }
             }
-
-            if (instanceSettingsString != null && instanceSettingsString.Count() > 0)
+            catch (Exception e)
             {
-                BrowserInstanceSettings.MergeWith(serializer.Deserialize<BrowserInstanceSettings>(instanceSettingsString));
+                API.Instance.Log(
+                    "Failed to deserialized source settings and forced to recreate");
+                API.Instance.Log("Exception: {0}", e);
             }
-
         }
 
         public bool Save(XElement element)
@@ -46,8 +83,25 @@ namespace CLRBrowserSourcePlugin.Shared
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             try
             {
-                String sourceSettings = serializer.Serialize(BrowserSourceSettings);
-                String instanceSettings = serializer.Serialize(BrowserInstanceSettings);
+                String sourceSettings;
+                String instanceSettings;
+
+                MemoryStream stream = new MemoryStream();
+
+                DataContractJsonSerializer ser = new DataContractJsonSerializer(
+                    typeof(BrowserSourceSettings));
+
+                ser.WriteObject(stream, BrowserSourceSettings);
+
+                sourceSettings = Convert.ToBase64String(stream.ToArray());
+
+                stream = new MemoryStream();
+                ser = new DataContractJsonSerializer(
+                    typeof(BrowserInstanceSettings));
+
+                ser.WriteObject(stream, BrowserInstanceSettings);
+
+                instanceSettings = Convert.ToBase64String(stream.ToArray());
 
                 element.SetString("sourceSettings", sourceSettings);
                 element.SetString("instanceSettings", instanceSettings);
@@ -59,14 +113,14 @@ namespace CLRBrowserSourcePlugin.Shared
             }
 
             return true;
-
         }
 
         #region Properties
 
         public BrowserSourceSettings BrowserSourceSettings { get; set; }
+
         public BrowserInstanceSettings BrowserInstanceSettings { get; set; }
 
-        #endregion
+        #endregion Properties
     }
 }

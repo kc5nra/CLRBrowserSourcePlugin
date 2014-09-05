@@ -114,10 +114,6 @@
       <Project>{703ff300-34b9-48d4-a5d6-e741f48d5f95}</Project>
       <Name>CefGlue</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\CLRHostPlugin\CLRHostInterop\CLRHostInterop.vcxproj">
-      <Project>{18746141-1223-4fdf-bd6e-e7536ccade4f}</Project>
-      <Name>CLRHost.Interop</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -149,7 +145,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetDir)$(TargetFileName)" "$(SolutionDir)..\OBS\rundir\plugins\CLRHostPlugin"</PostBuildEvent>
+    <PostBuildEvent>copy "$(TargetDir)$(TargetFileName)" "$(SolutionDir)..\OBS\rundir\plugins\CLRHostPlugin\CLRBrowserSourcePlugin"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

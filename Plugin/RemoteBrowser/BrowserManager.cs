@@ -5,7 +5,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Security;
 using System.Text;
@@ -40,7 +42,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
         internal BrowserPluginManager PluginManager { get; private set; }
 
-        private Thread dispatcherThread;
         private SimpleDispatcher dispatcher;
 
         private Object browserMapLock = new Object();
@@ -55,8 +56,19 @@ namespace CLRBrowserSourcePlugin.Browser
 
             dispatcher = new SimpleDispatcher();
             dispatcher.Start();
-           
+
             PluginManager = new BrowserPluginManager();
+        }
+
+        public static string AssemblyDirectory
+        {
+            get
+            {
+                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+                UriBuilder uri = new UriBuilder(codeBase);
+                string path = Uri.UnescapeDataString(uri.Path);
+                return Path.GetDirectoryName(path);
+            }
         }
 
         public void Start()
@@ -70,9 +82,12 @@ namespace CLRBrowserSourcePlugin.Browser
                 isMultiThreadedMessageLoop = settings.MultiThreadedMessageLoop;
                 isSingleProcess = BrowserSettings.Instance.RuntimeSettings.SingleProcess;
 
+                string browserSubprocessPath = Path.Combine(AssemblyDirectory,
+                    "CLRBrowserSourcePlugin", "CLRBrowserSourceClient.exe");
+
                 CefSettings cefSettings = new CefSettings
                 {
-                    BrowserSubprocessPath = @"plugins\CLRHostPlugin\CLRBrowserSourceClient.exe",
+                    BrowserSubprocessPath = browserSubprocessPath,
                     CachePath = settings.CachePath,
                     CommandLineArgsDisabled = settings.CommandLineArgsDisabled,
                     IgnoreCertificateErrors = settings.IgnoreCertificateErrors,
@@ -81,12 +96,13 @@ namespace CLRBrowserSourcePlugin.Browser
                     LocalesDirPath = settings.LocalesDirPath,
                     LogFile = settings.LogFile,
                     LogSeverity = settings.LogSeverity,
-                    MultiThreadedMessageLoop = false,
+                    MultiThreadedMessageLoop = settings.MultiThreadedMessageLoop,
+                    NoSandbox = true,
                     PersistSessionCookies = settings.PersistSessionCookies,
                     ProductVersion = settings.ProductVersion,
                     RemoteDebuggingPort = settings.RemoteDebuggingPort,
                     ResourcesDirPath = settings.ResourcesDirPath,
-                    SingleProcess = settings.SingleProcess,
+                    SingleProcess = false,
                     UncaughtExceptionStackSize = settings.UncaughtExceptionStackSize,
                     WindowlessRenderingEnabled = true
                 };
@@ -99,25 +115,30 @@ namespace CLRBrowserSourcePlugin.Browser
                 CefRuntime.RegisterSchemeHandlerFactory("local", null, new AssetSchemeHandlerFactory());
                 CefRuntime.RegisterSchemeHandlerFactory("http", "absolute", new AssetSchemeHandlerFactory());
 
-                CefRuntime.RunMessageLoop();
+                if (!settings.MultiThreadedMessageLoop)
+                {
+                    CefRuntime.RunMessageLoop();
+                }
             }));
-            
         }
 
         public void Stop()
         {
             CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
             {
-                CefRuntime.QuitMessageLoop();
+                if (!isMultiThreadedMessageLoop)
+                {
+                    CefRuntime.QuitMessageLoop();
+                }
             }));
 
-
-            dispatcher.PostTask(() => {
+            dispatcher.PostTask(() =>
+            {
                 CefRuntime.Shutdown();
             });
 
             dispatcher.Shutdown();
-            
+
             int browserMapCount = browserMap.Count;
             if (browserMapCount != 0)
             {

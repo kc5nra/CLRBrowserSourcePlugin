@@ -1,19 +1,16 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.Browser;
+using CLRBrowserSourcePlugin.Shared;
+using CLROBS;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using CLROBS;
-
-using CLRBrowserSourcePlugin.Browser;
-using CLRBrowserSourcePlugin.Shared;
-
 namespace CLRBrowserSourcePlugin
 {
-    class BrowserSource : AbstractImageSource, IDisposable
+    internal class BrowserSource : AbstractImageSource, IDisposable
     {
-        private bool isDisposed;
         private XElement configElement;
         private BrowserConfig browserConfig;
 
@@ -67,11 +64,9 @@ namespace CLRBrowserSourcePlugin
                     browser = null;
                 }
             }
-
-            isDisposed = true;
         }
 
-        #endregion
+        #endregion Disposable
 
         override public void UpdateSettings()
         {
@@ -92,7 +87,6 @@ namespace CLRBrowserSourcePlugin
                 browser = new BrowserWrapper();
             }
 
-            
             hasBrowser = browser.CreateBrowser(this, browserConfig);
         }
 
@@ -111,7 +105,9 @@ namespace CLRBrowserSourcePlugin
         public class TextureDesc
         {
             public UInt32 Width { get; set; }
+
             public UInt32 Height { get; set; }
+
             public Texture Texture { get; set; }
         }
 
@@ -169,14 +165,14 @@ namespace CLRBrowserSourcePlugin
                 Texture textureToRemove;
                 if (textureMap.TryGetValue(textureHandle, out textureToRemove))
                 {
-                    if (texture == textureToRemove) {
+                    if (texture == textureToRemove)
+                    {
                         texture = null;
                     }
                     textureToRemove.Dispose();
                     textureMap.Remove(textureHandle);
                 }
             }
-            
         }
 
         public override void Preprocess()
@@ -196,7 +192,6 @@ namespace CLRBrowserSourcePlugin
                     pendingTexture.Texture = GS.CreateTexture(pendingTexture.Width, pendingTexture.Height, GSColorFormat.GS_BGRA, null, false, false);
                 }
             }
-
         }
 
         override public void Render(float x, float y, float width, float height)
@@ -209,7 +204,5 @@ namespace CLRBrowserSourcePlugin
                 }
             }
         }
-
-
     }
 }

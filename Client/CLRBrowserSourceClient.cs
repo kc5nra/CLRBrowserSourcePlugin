@@ -31,13 +31,13 @@ namespace CLRBrowserSourceClient
 
         public static int Main(String[] args)
         {
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "d3dcompiler_43.dll"));
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "d3dcompiler_46.dll"));
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "libGLESv2.dll"));
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "libEGL.dll"));
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "ffmpegsumo.dll"));
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "icudt.dll"));
-            //LoadLibrary(Path.Combine(AssemblyDirectory, "libcef.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "d3dcompiler_43.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "d3dcompiler_46.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "libGLESv2.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "libEGL.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "ffmpegsumo.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "icudt.dll"));
+            LoadLibrary(Path.Combine(AssemblyDirectory, "libcef.dll"));
 
             CefMainArgs mainArgs = new CefMainArgs(IntPtr.Zero, args);
             return CefRuntime.ExecuteProcess(mainArgs, new BrowserApp(), IntPtr.Zero);

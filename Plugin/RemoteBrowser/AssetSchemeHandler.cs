@@ -11,7 +11,7 @@ using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.RemoteBrowser
 {
-    class AssetSchemeHandlerFactory : CefSchemeHandlerFactory
+    internal class AssetSchemeHandlerFactory : CefSchemeHandlerFactory
     {
         protected override CefResourceHandler Create(CefBrowser browser, CefFrame frame, string schemeName, CefRequest request)
         {
@@ -35,30 +35,26 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
         }
     }
 
-    class AssetSchemeHandler : CefResourceHandler
+    internal class AssetSchemeHandler : CefResourceHandler
     {
         private BrowserConfig config;
 
         private Uri uri;
 
-        private String resolvedPath;
+        private string resolvedPath;
         private Stream inputStream;
 
         private Boolean isAssetWrapping;
 
         private bool isComplete;
-        private bool isFirstRead;
         private long length;
         private long remaining;
-        private String cssInject;
 
         public AssetSchemeHandler(BrowserConfig config, CefRequest request)
         {
             this.config = config;
             isComplete = false;
-            isFirstRead = false;
             length = remaining = -1;
-            cssInject = "<style>" + config.BrowserSourceSettings.CSS + "</style>";
         }
 
         protected override void GetResponseHeaders(CefResponse response, out long responseLength, out string redirectUrl)
@@ -70,18 +66,20 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 return;
             }
 
-            String extension = Path.GetExtension(uri.LocalPath);
+            string extension = Path.GetExtension(uri.LocalPath);
             if (extension.Length > 1 && extension.StartsWith("."))
             {
                 extension = extension.Substring(1);
             }
 
-            String mimeType;
+            string mimeType;
 
             if (!MimeTypeManager.MimeTypes.TryGetValue(extension, out mimeType))
             {
                 mimeType = "text/html";
             }
+
+            API.Instance.Log("AssetSchemeHandler::GetResponseHeadlers File {0} mapped with mime type {1}", resolvedPath, mimeType);
 
             response.Status = 200;
             response.MimeType = mimeType;
@@ -114,8 +112,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 return false;
             }
 
-            String relativePath = relativeUrl.LocalPath.Substring(1);
-            String filename;
+            string relativePath = relativeUrl.LocalPath.Substring(1);
+            string filename;
             try
             {
                 filename = Path.GetFileName(relativePath);
@@ -130,7 +128,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             if (uri.LocalPath.Length == 1)
             {
                 isAssetWrapping = true;
-                String resolvedTemplate = config.BrowserSourceSettings.Template;
+                string resolvedTemplate = config.BrowserSourceSettings.Template;
                 resolvedTemplate = resolvedTemplate.Replace("$(FILE)", filename);
                 resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
                 resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
@@ -139,7 +137,7 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             else
             {
                 isAssetWrapping = false;
-                
+
                 if (uri.LocalPath != null && uri.LocalPath.Length > 1)
                 {
                     resolvedPath = uri.LocalPath.Substring(1);
@@ -157,6 +155,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 {
                     resolvedPath = Path.Combine(relativePath, resolvedPath);
                 }
+
+                API.Instance.Log("AssetSchemeHandler::ProcessRequest handling file {0}", resolvedPath);
 
                 try
                 {

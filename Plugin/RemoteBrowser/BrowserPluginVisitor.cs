@@ -45,23 +45,6 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             {
                 CefRuntime.VisitWebPluginInfo(new BrowserPluginVisitor(disposedEvent, action));
             }));
-
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            int waitTime = BrowserSettings.Instance.RuntimeSettings.MaximumBrowserKillWaitTime;
-
-            while (!disposedEvent.Wait(100))
-            {
-                if (stopwatch.ElapsedMilliseconds > waitTime)
-                {
-                    MessageBox.Show("The browser plugin attempted to enumerate the installed plugins but failed.", "Could not enumerate browser plugins", MessageBoxButton.OK);
-                    break;
-                }
-                BrowserManager.Instance.Update();
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-            }
         }
     }
 }

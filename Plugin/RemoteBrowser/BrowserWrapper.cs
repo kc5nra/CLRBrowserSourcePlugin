@@ -7,8 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Xilium.CefGlue;
 using System.Web;
+using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
@@ -31,11 +31,16 @@ namespace CLRBrowserSourcePlugin.Browser
 
             browserClient = new BrowserClient();
 
-            browserClient.LoadHandler.OnLoadEndEvent = new OnLoadEndEventHandler(OnLoadEnd);
-            browserClient.RenderHandler.SizeEvent = new SizeEventHandler(Size);
-            browserClient.RenderHandler.PaintEvent = new PaintEventHandler(browserSource.RenderTexture);
-            browserClient.RenderHandler.CreateTextureEvent = new CreateTextureEventHandler(browserSource.CreateTexture);
-            browserClient.RenderHandler.DestroyTextureEvent = new DestroyTextureEventHandler(browserSource.DestroyTexture);
+            browserClient.LoadHandler.OnLoadEndEvent =
+                new OnLoadEndEventHandler(OnLoadEnd);
+            browserClient.RenderHandler.SizeEvent =
+                new SizeEventHandler(Size);
+            browserClient.RenderHandler.PaintEvent =
+                new PaintEventHandler(browserSource.RenderTexture);
+            browserClient.RenderHandler.CreateTextureEvent =
+                new CreateTextureEventHandler(browserSource.CreateTexture);
+            browserClient.RenderHandler.DestroyTextureEvent =
+                new DestroyTextureEventHandler(browserSource.DestroyTexture);
         }
 
         private void UninitClient()
@@ -50,9 +55,9 @@ namespace CLRBrowserSourcePlugin.Browser
             browserClient = null;
         }
 
-        public bool CreateBrowser(BrowserSource browserSource, BrowserConfig browserConfig)
+        public bool CreateBrowser(BrowserSource browserSource,
+            BrowserConfig browserConfig)
         {
-
             if (browserClient == null)
             {
                 InitClient(browserSource);
@@ -68,7 +73,8 @@ namespace CLRBrowserSourcePlugin.Browser
             windowInfo.Height = (int)browserConfig.BrowserSourceSettings.Height;
             windowInfo.SetAsWindowless(IntPtr.Zero, true);
 
-            BrowserInstanceSettings settings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
+            BrowserInstanceSettings settings = AbstractSettings.DeepClone(
+                BrowserSettings.Instance.InstanceSettings);
             settings.MergeWith(browserConfig.BrowserInstanceSettings);
 
             CefBrowserSettings browserSettings = new CefBrowserSettings
@@ -102,7 +108,8 @@ namespace CLRBrowserSourcePlugin.Browser
                 StandardFontFamily = settings.StandardFontFamily,
                 //TabToLinks = settings.TabToLinks,
                 //TextAreaResize = settings.TextAreaResize,
-                UniversalAccessFromFileUrls = settings.UniversalAccessFromFileUrls,
+                UniversalAccessFromFileUrls =
+                    settings.UniversalAccessFromFileUrls,
                 WebGL = settings.WebGL,
                 WebSecurity = settings.WebSecurity
             };
@@ -111,29 +118,37 @@ namespace CLRBrowserSourcePlugin.Browser
 
             if (browserConfig.BrowserSourceSettings.IsApplyingTemplate)
             {
-                String resolvedTemplate = browserConfig.BrowserSourceSettings.Template;
-                resolvedTemplate = resolvedTemplate.Replace("$(FILE)", browserConfig.BrowserSourceSettings.Url);
-                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", browserConfig.BrowserSourceSettings.Width.ToString());
-                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", browserConfig.BrowserSourceSettings.Height.ToString());
+                String resolvedTemplate =
+                    browserConfig.BrowserSourceSettings.Template;
+                resolvedTemplate = resolvedTemplate.Replace("$(FILE)",
+                    browserConfig.BrowserSourceSettings.Url);
+                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)",
+                    browserConfig.BrowserSourceSettings.Width.ToString());
+                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)",
+                    browserConfig.BrowserSourceSettings.Height.ToString());
 
                 url = "http://absolute";
             }
 
-            ManualResetEventSlim createdBrowserEvent = new ManualResetEventSlim();
-            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() => {
+            ManualResetEventSlim createdBrowserEvent =
+                new ManualResetEventSlim();
+            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
+            {
                 try
                 {
-                    browser = CefBrowserHost.CreateBrowserSync(windowInfo, browserClient, browserSettings, new Uri(url));
-                    BrowserManager.Instance.RegisterBrowser(browser.Identifier, this);
-                } 
-                catch (Exception e) 
+                    browser = CefBrowserHost.CreateBrowserSync(windowInfo,
+                        browserClient, browserSettings, new Uri(url));
+                    BrowserManager.Instance.RegisterBrowser(browser.Identifier,
+                        this);
+                }
+                catch (Exception)
                 {
                     browser = null;
-                } 
-                finally 
+                }
+                finally
                 {
                     createdBrowserEvent.Set();
-                }        
+                }
             }));
 
             createdBrowserEvent.Wait();
@@ -143,7 +158,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void CloseBrowser(bool isForcingClose)
         {
-            
             ManualResetEvent closeFinishedEvent = new ManualResetEvent(false);
 
             CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
@@ -151,7 +165,8 @@ namespace CLRBrowserSourcePlugin.Browser
                 if (browser != null)
                 {
                     browser.GetHost().CloseBrowser(isForcingClose);
-                    BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
+                    BrowserManager.Instance.UnregisterBrowser(
+                        browser.Identifier);
                     UninitClient();
                     browser = null;
                 }
@@ -160,30 +175,30 @@ namespace CLRBrowserSourcePlugin.Browser
             }));
 
             closeFinishedEvent.WaitOne();
-            
         }
 
-        public void OnLoadEnd(CefBrowser browser, CefFrame frame, 
+        public void OnLoadEnd(CefBrowser browser, CefFrame frame,
             int httpStatusCode)
         {
             // main frame
             if (frame.IsMain)
             {
                 string base64EncodedCss = "data:text/css;charset=utf-8;base64,";
-                base64EncodedCss += Convert.ToBase64String(Encoding.UTF8.GetBytes(
-                    BrowserConfig.BrowserSourceSettings.CSS));
+                base64EncodedCss +=
+                    Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                        BrowserConfig.BrowserSourceSettings.CSS));
 
-                string script = "" 
+                string script = ""
                     + "var link = document.createElement('link');"
                     + "link.setAttribute('rel', 'stylesheet');"
                     + "link.setAttribute('type', 'text/css');"
                     + "link.setAttribute('href', '{0}');"
                     + "document.getElementsByTagName('head')[0].appendChild(link);";
 
-                frame.ExecuteJavaScript(String.Format(script, base64EncodedCss), null, 0);
+                frame.ExecuteJavaScript(String.Format(script, base64EncodedCss),
+                    null, 0);
             }
         }
-
 
         public bool Size(ref CefRectangle rect)
         {

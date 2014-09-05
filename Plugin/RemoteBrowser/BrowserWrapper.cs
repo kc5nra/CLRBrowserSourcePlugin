@@ -8,24 +8,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xilium.CefGlue;
+using System.Web;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
     internal class BrowserWrapper
     {
-        public enum BrowserStatus
-        {
-            Initial,
-            Creating,
-            Created,
-            Closing,
-            Closed
-        }
-
-        public BrowserStatus Status { get; private set; }
-
-        private bool hasPendingClose;
-
         private BrowserClient browserClient;
         private CefBrowser browser;
 
@@ -33,9 +21,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public BrowserWrapper()
         {
-            Status = BrowserStatus.Initial;
-
-            hasPendingClose = false;
             browserClient = null;
             browser = null;
         }
@@ -46,22 +31,19 @@ namespace CLRBrowserSourcePlugin.Browser
 
             browserClient = new BrowserClient();
 
+            browserClient.LoadHandler.OnLoadEndEvent = new OnLoadEndEventHandler(OnLoadEnd);
             browserClient.RenderHandler.SizeEvent = new SizeEventHandler(Size);
             browserClient.RenderHandler.PaintEvent = new PaintEventHandler(browserSource.RenderTexture);
             browserClient.RenderHandler.CreateTextureEvent = new CreateTextureEventHandler(browserSource.CreateTexture);
             browserClient.RenderHandler.DestroyTextureEvent = new DestroyTextureEventHandler(browserSource.DestroyTexture);
-            browserClient.LifeSpanHandler.AfterCreatedEvent = new AfterCreatedEventHandler(AfterCreated);
-            browserClient.LifeSpanHandler.OnBeforeCloseEvent = new OnBeforeCloseEventHandler(OnBeforeClose);
-            browserClient.LifeSpanHandler.DoCloseEvent = new DoCloseEventHandler(DoClose);
         }
 
         private void UninitClient()
         {
             Debug.Assert(browserClient != null);
 
+            browserClient.LoadHandler = null;
             browserClient.DisplayHandler = null;
-            browserClient.LifeSpanHandler = null;
-
             browserClient.RenderHandler.Cleanup();
             browserClient.RenderHandler = null;
 
@@ -70,9 +52,11 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public bool CreateBrowser(BrowserSource browserSource, BrowserConfig browserConfig)
         {
-            Debug.Assert(Status == BrowserStatus.Initial);
 
-            InitClient(browserSource);
+            if (browserClient == null)
+            {
+                InitClient(browserSource);
+            }
 
             Debug.Assert(browserClient != null);
             Debug.Assert(browserConfig != null);
@@ -83,9 +67,6 @@ namespace CLRBrowserSourcePlugin.Browser
             windowInfo.Width = (int)browserConfig.BrowserSourceSettings.Width;
             windowInfo.Height = (int)browserConfig.BrowserSourceSettings.Height;
             windowInfo.SetAsWindowless(IntPtr.Zero, true);
-
-            //String base64EncodedDataUri = "data:text/css;charset=utf-8;base64,";
-            //String base64EncodedCss = Convert.ToBase64String(Encoding.UTF8.GetBytes(browserConfig.BrowserSourceSettings.CSS));
 
             BrowserInstanceSettings settings = AbstractSettings.DeepClone(BrowserSettings.Instance.InstanceSettings);
             settings.MergeWith(browserConfig.BrowserInstanceSettings);
@@ -138,54 +119,71 @@ namespace CLRBrowserSourcePlugin.Browser
                 url = "http://absolute";
             }
 
-            // must be sync invoke because wrapper can be destroyed before it is run
+            ManualResetEventSlim createdBrowserEvent = new ManualResetEventSlim();
+            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() => {
+                try
+                {
+                    browser = CefBrowserHost.CreateBrowserSync(windowInfo, browserClient, browserSettings, new Uri(url));
+                    BrowserManager.Instance.RegisterBrowser(browser.Identifier, this);
+                } 
+                catch (Exception e) 
+                {
+                    browser = null;
+                } 
+                finally 
+                {
+                    createdBrowserEvent.Set();
+                }        
+            }));
 
-            try
-            {
-                // Since the event methods can be called before the next statement
-                // set the status before we call it
-                Status = BrowserStatus.Creating;
-                CefBrowserHost.CreateBrowser(windowInfo, browserClient, browserSettings, new Uri(url));
-            }
-            catch (InvalidOperationException e)
-            {
-                API.Instance.Log("BrowserWrapper::CreateBrowser failed; {0}", e.Message);
-                UninitClient();
-                return false;
-            }
+            createdBrowserEvent.Wait();
 
-            BrowserManager.Instance.IncrementBrowserInstanceCount();
-
-            return true;
+            return browser != null;
         }
-
-        //private void DoCloseBrowser(bool isForcingClose)
-        //{
-        //}
 
         public void CloseBrowser(bool isForcingClose)
         {
-            // the renderer doesn't need to communicate with the browser source
-            // after it has been closed
-            // this avoids a problem where the browser source gets disposed before it
-            // has completed it's shutdown sequence
-            browserClient.RenderHandler.Cleanup();
+            
+            ManualResetEvent closeFinishedEvent = new ManualResetEvent(false);
 
-            // Did we get a close before we finished creating?
-            if (Status == BrowserStatus.Creating)
+            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
             {
-                hasPendingClose = true;
-            }
-            else if (Status == BrowserStatus.Created)
-            {
-                Debug.Assert(browser != null);
-                Status = BrowserStatus.Closing;
-                CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
+                if (browser != null)
                 {
                     browser.GetHost().CloseBrowser(isForcingClose);
-                }));
+                    BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
+                    UninitClient();
+                    browser = null;
+                }
+
+                closeFinishedEvent.Set();
+            }));
+
+            closeFinishedEvent.WaitOne();
+            
+        }
+
+        public void OnLoadEnd(CefBrowser browser, CefFrame frame, 
+            int httpStatusCode)
+        {
+            // main frame
+            if (frame.IsMain)
+            {
+                string base64EncodedCss = "data:text/css;charset=utf-8;base64,";
+                base64EncodedCss += Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                    BrowserConfig.BrowserSourceSettings.CSS));
+
+                string script = "" 
+                    + "var link = document.createElement('link');"
+                    + "link.setAttribute('rel', 'stylesheet');"
+                    + "link.setAttribute('type', 'text/css');"
+                    + "link.setAttribute('href', '{0}');"
+                    + "document.getElementsByTagName('head')[0].appendChild(link);";
+
+                frame.ExecuteJavaScript(String.Format(script, base64EncodedCss), null, 0);
             }
         }
+
 
         public bool Size(ref CefRectangle rect)
         {
@@ -196,61 +194,5 @@ namespace CLRBrowserSourcePlugin.Browser
 
             return true;
         }
-
-        #region Events
-
-        // AfterCreated event
-        public void AfterCreated(CefBrowser browser)
-        {
-            Debug.Assert(this.browser == null);
-            Debug.Assert(browser != null);
-
-            this.browser = browser;
-
-            BrowserManager.Instance.RegisterBrowser(browser.Identifier, this);
-
-            Debug.Assert(Status == BrowserStatus.Creating);
-
-            Status = BrowserStatus.Created;
-
-            if (hasPendingClose)
-            {
-                hasPendingClose = false;
-                CloseBrowser(true);
-            }
-        }
-
-        // DoClose event
-        public bool DoClose(CefBrowser browser)
-        {
-            Debug.Assert(browser != null);
-
-            //browser.GetHost().ParentWindowWillClose();
-
-            Debug.Assert(Status == BrowserStatus.Created || Status == BrowserStatus.Closing);
-
-            Status = BrowserStatus.Closing;
-
-            return false;
-        }
-
-        // OnBeforeClose event
-        public void OnBeforeClose(CefBrowser browser)
-        {
-            Debug.Assert(Status == BrowserStatus.Closing);
-            Debug.Assert(browser != null);
-
-            BrowserManager.Instance.UnregisterBrowser(browser.Identifier);
-
-            browser = null;
-
-            BrowserManager.Instance.DecrementBrowserInstanceCount();
-
-            Status = BrowserStatus.Closed;
-
-            UninitClient();
-        }
-
-        #endregion Events
     }
 }

@@ -88,6 +88,7 @@
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Printing" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
@@ -107,6 +108,7 @@
     <Compile Include="RemoteBrowser\BrowserClient.cs" />
     <Compile Include="RemoteBrowser\BrowserDisplayHandler.cs" />
     <Compile Include="RemoteBrowser\BrowserLifeSpanHandler.cs" />
+    <Compile Include="RemoteBrowser\BrowserLoadHandler.cs" />
     <Compile Include="RemoteBrowser\BrowserManager.cs" />
     <Compile Include="RemoteBrowser\BrowserPluginManager.cs" />
     <Compile Include="RemoteBrowser\BrowserPluginVisitor.cs" />
@@ -122,6 +124,7 @@
     <Compile Include="ConfigDialog.xaml.cs">
       <DependentUpon>ConfigDialog.xaml</DependentUpon>
     </Compile>
+    <Compile Include="RemoteBrowser\SimpleDispatcher.cs" />
     <Compile Include="RemoteBrowser\StreamUtils.cs" />
     <Compile Include="SettingsPane.xaml.cs">
       <DependentUpon>SettingsPane.xaml</DependentUpon>

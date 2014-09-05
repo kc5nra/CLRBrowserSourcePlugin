@@ -24,6 +24,8 @@ namespace CLRBrowserSourcePlugin
         private Texture texture;
         private UInt32 outputColor;
 
+        private bool hasBrowser;
+
         public BrowserSource(XElement configElement)
         {
             this.configElement = configElement;
@@ -81,14 +83,17 @@ namespace CLRBrowserSourcePlugin
 
             outputColor = 0xFFFFFF | (((uint)(browserConfig.BrowserSourceSettings.Opacity * 255) & 0xFF) << 24);
 
-            if (browser != null)
+            if (hasBrowser || browser == null)
             {
-                browser.CloseBrowser(true);
-                browser = null;
+                if (browser != null)
+                {
+                    browser.CloseBrowser(true);
+                }
+                browser = new BrowserWrapper();
             }
 
-            browser = new BrowserWrapper();
-            browser.CreateBrowser(this, browserConfig);
+            
+            hasBrowser = browser.CreateBrowser(this, browserConfig);
         }
 
         public void RenderTexture(IntPtr textureHandle)
@@ -178,6 +183,11 @@ namespace CLRBrowserSourcePlugin
         {
             // only does something if browser is single threaded event loop
             BrowserManager.Instance.Update();
+
+            if (!hasBrowser)
+            {
+                UpdateSettings();
+            }
 
             lock (pendingTextureLock)
             {

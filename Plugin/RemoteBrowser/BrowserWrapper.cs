@@ -16,7 +16,7 @@ namespace CLRBrowserSourcePlugin.Browser
     {
         private BrowserClient browserClient;
         private CefBrowser browser;
-
+        private object browserLock = new object();
         public BrowserConfig BrowserConfig { get; private set; }
 
         public BrowserWrapper()
@@ -130,51 +130,82 @@ namespace CLRBrowserSourcePlugin.Browser
                 url = "http://absolute";
             }
 
-            ManualResetEventSlim createdBrowserEvent =
-                new ManualResetEventSlim();
-            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
+            lock (browserLock)
             {
-                try
+                ManualResetEventSlim createdBrowserEvent =
+                    new ManualResetEventSlim();
+                CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
                 {
-                    browser = CefBrowserHost.CreateBrowserSync(windowInfo,
-                        browserClient, browserSettings, new Uri(url));
-                    BrowserManager.Instance.RegisterBrowser(browser.Identifier,
-                        this);
-                }
-                catch (Exception)
-                {
-                    browser = null;
-                }
-                finally
-                {
-                    createdBrowserEvent.Set();
-                }
-            }));
-
-            createdBrowserEvent.Wait();
+                    try
+                    {
+                        browser = CefBrowserHost.CreateBrowserSync(windowInfo,
+                            browserClient, browserSettings, new Uri(url));
+                        BrowserManager.Instance.RegisterBrowser(browser.Identifier,
+                            this);
+                    }
+                    catch (Exception)
+                    {
+                        browser = null;
+                    }
+                    finally
+                    {
+                        createdBrowserEvent.Set();
+                    }
+                }));
+                createdBrowserEvent.Wait();
+            }
 
             return browser != null;
         }
 
+        ManualResetEventSlim closeFinishedEvent;
+
+        private void OnBeforeClose(CefBrowser browser)
+        {
+            this.browser = null;
+            BrowserManager.Instance.UnregisterBrowser(
+                browser.Identifier);
+
+            // Remove the transient life span handler
+            browserClient.LifeSpanHandler = null;
+            
+            // clean up the other client stuff
+            UninitClient();
+
+            closeFinishedEvent.Set();
+        }
+
         public void CloseBrowser(bool isForcingClose)
         {
-            ManualResetEvent closeFinishedEvent = new ManualResetEvent(false);
-
+            closeFinishedEvent = 
+                new ManualResetEventSlim(false);
+            
             CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
             {
-                if (browser != null)
+
+                // make sure we arent mid browser creation
+                // lock on browser
+                lock (browserLock)
                 {
-                    browser.GetHost().CloseBrowser(isForcingClose);
-                    BrowserManager.Instance.UnregisterBrowser(
-                        browser.Identifier);
-                    UninitClient();
-                    browser = null;
+                    if (browser != null)
+                    {
+                        
+                        browserClient.LifeSpanHandler.OnBeforeCloseEvent =
+                            new OnBeforeCloseEventHandler(OnBeforeClose);
+
+                        browser.GetHost().CloseBrowser(isForcingClose);
+                    }
+                    else
+                    {
+                        closeFinishedEvent.Set();
+                    }
                 }
 
-                closeFinishedEvent.Set();
+                
             }));
 
-            closeFinishedEvent.WaitOne();
+            closeFinishedEvent.Wait();
+            closeFinishedEvent = null;
         }
 
         public void OnLoadEnd(CefBrowser browser, CefFrame frame,

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xilium.CefGlue;
 
@@ -10,10 +11,34 @@ namespace CLRBrowserSourcePlugin.Shared
     class BrowserApp : CefApp
     {
         private String[] arguments;
+        private BrowserProcessHandler browserProcessHandler;
 
-        public BrowserApp(String[] arguments)
+        public BrowserApp(String[] arguments, 
+            ManualResetEventSlim contextInitializedEvent)
         {
             this.arguments = arguments;
+
+            browserProcessHandler = new BrowserProcessHandler(
+                contextInitializedEvent);
+        }
+
+        private class BrowserProcessHandler : CefBrowserProcessHandler
+        {
+            private ManualResetEventSlim contextInitializedEvent;
+
+            internal BrowserProcessHandler(ManualResetEventSlim contextInitializedEvent)
+            {
+                this.contextInitializedEvent = contextInitializedEvent;
+            }
+            protected override void OnContextInitialized()
+            {
+                contextInitializedEvent.Set();
+            }
+        }
+
+        protected override CefBrowserProcessHandler GetBrowserProcessHandler()
+        {
+            return browserProcessHandler;
         }
 
         protected override void OnRegisterCustomSchemes(CefSchemeRegistrar registrar)

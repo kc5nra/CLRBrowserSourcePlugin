@@ -73,6 +73,10 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void Start()
         {
+
+            ManualResetEventSlim contextInitializedEvent = 
+                new ManualResetEventSlim();
+
             dispatcher.PostTask(new Action(() =>
             {
                 CefRuntime.Load();
@@ -106,11 +110,22 @@ namespace CLRBrowserSourcePlugin.Browser
                     UncaughtExceptionStackSize = settings.UncaughtExceptionStackSize,
                     WindowlessRenderingEnabled = true
                 };
+         
+                string[] commandLineArgs = settings.CommandLineArgsDisabled ? 
+                    new String[0] : settings.CommandLineArguments;
 
-                BrowserApp browserApp = new BrowserApp(settings.CommandLineArgsDisabled ? new String[0] : settings.CommandLineArguments);
+                BrowserApp browserApp = new BrowserApp(
+                    commandLineArgs, contextInitializedEvent);
 
-                CefRuntime.ExecuteProcess(cefMainArgs, browserApp, IntPtr.Zero);
-                CefRuntime.Initialize(cefMainArgs, cefSettings, browserApp, IntPtr.Zero);
+                try
+                {
+                    CefRuntime.Initialize(cefMainArgs, cefSettings, browserApp, IntPtr.Zero);
+                }
+                catch (InvalidOperationException e)
+                {
+                    API.Instance.Log("Failed to initialize cef runtime");
+                    contextInitializedEvent.Set();
+                }
 
                 CefRuntime.RegisterSchemeHandlerFactory("local", null, new AssetSchemeHandlerFactory());
                 CefRuntime.RegisterSchemeHandlerFactory("http", "absolute", new AssetSchemeHandlerFactory());
@@ -120,6 +135,9 @@ namespace CLRBrowserSourcePlugin.Browser
                     CefRuntime.RunMessageLoop();
                 }
             }));
+
+            contextInitializedEvent.Wait();
+
         }
 
         public void Stop()

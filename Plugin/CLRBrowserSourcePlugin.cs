@@ -24,11 +24,21 @@ namespace CLRBrowserSourcePlugin
             Name = "CLR Browser Source Plugin";
             Description = "CLR Browser Source Plugin based on CEF";
         }
-        
+
+        public static string AssemblyDirectory
+        {
+            get
+            {
+                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+                UriBuilder uri = new UriBuilder(codeBase);
+                string path = Uri.UnescapeDataString(uri.Path);
+                return Path.GetDirectoryName(path);
+            }
+        }
+
         public override bool LoadPlugin()
         {
-            String currentDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            String libraryDirectory = Path.Combine(currentDirectory, "CLRBrowserSourcePlugin");
+            String libraryDirectory = Path.Combine(AssemblyDirectory, "CLRBrowserSourcePlugin");
 
             LoadLibrary(Path.Combine(libraryDirectory, "d3dcompiler_43.dll"));
             LoadLibrary(Path.Combine(libraryDirectory, "d3dcompiler_46.dll"));

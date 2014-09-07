@@ -29,7 +29,7 @@ namespace CLRBrowserSourceClient
             }
         }
 
-        public static int Main(String[] args)
+        static int Main(String[] args)
         {
             LoadLibrary(Path.Combine(AssemblyDirectory, "d3dcompiler_43.dll"));
             LoadLibrary(Path.Combine(AssemblyDirectory, "d3dcompiler_46.dll"));

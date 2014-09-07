@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -88,6 +89,26 @@ namespace CLRBrowserSourcePlugin.Shared
                 }
             }
             
+            // If these were not manually specified then
+            // try to add pepflashplayer.dll
+            if (!commandLine.HasSwitch("ppapi-out-of-process") &&
+                !commandLine.HasSwitch("register-pepper-plugins"))
+            {
+                string flashPluginPath = Path.Combine(
+                    CLRBrowserSourcePlugin.AssemblyDirectory,
+                    "CLRBrowserSourcePlugin", "pepflashplayer.dll");
+
+                if (File.Exists(flashPluginPath))
+                {
+                    commandLine.AppendSwitch("ppapi-out-of-process");
+
+                    string flashPluginValue = flashPluginPath +
+                        ";application/x-shockwave-flash";
+
+                    commandLine.AppendSwitch("register-pepper-plugins",
+                        flashPluginValue);
+                }
+            }
         }
     }
 }

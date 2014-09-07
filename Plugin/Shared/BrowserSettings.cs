@@ -244,17 +244,22 @@ namespace CLRBrowserSourcePlugin.Shared
             Height = 480;
             Url = "http://www.obsproject.com";
             CSS =
-                  "::-webkit-scrollbar {\r\n"
-                + "  visibility: hidden;\r\n"
-                + "}\r\n"
-                + "body {\r\n"
+                  "body {\r\n"
                 + "  background-color: rgba(0, 0, 0, 0);\r\n"
                 + "  margin: 0px auto;\r\n"
+                + "  overflow: hidden;\r\n"
                 + "}\r\n";
             Template =
                   "<html>\r\n"
                 + "  <head>\r\n"
                 + " 	  <meta charset='utf-8'/>\r\n"
+                + "       <style>\r\n"
+                + "         body {\r\n"
+                + "           background-color: rgba(0, 0, 0, 0);\r\n"
+                + "           margin: 0px auto;\r\n"
+                + "           overflow: hidden;\r\n"
+                + "         }\r\n"
+                + "       </style>\r\n"
                 + "  </head>\r\n"
                 + "  <body>\r\n"
                 + "    <object width='$(WIDTH)' height='$(HEIGHT)'>\r\n"
@@ -275,6 +280,7 @@ namespace CLRBrowserSourcePlugin.Shared
             IsApplyingTemplate = false;
             IsShowingAdvancedProperties = false;
             Opacity = 1.0f;
+            Fps = 30;
         }
 
         [DataMember]

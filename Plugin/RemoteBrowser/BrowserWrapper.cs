@@ -162,16 +162,8 @@ namespace CLRBrowserSourcePlugin.Browser
 
         private void OnBeforeClose(CefBrowser browser)
         {
-            this.browser = null;
-            BrowserManager.Instance.UnregisterBrowser(
-                browser.Identifier);
-
             // Remove the transient life span handler
             browserClient.LifeSpanHandler = null;
-            
-            // clean up the other client stuff
-            UninitClient();
-
             closeFinishedEvent.Set();
         }
 
@@ -179,13 +171,12 @@ namespace CLRBrowserSourcePlugin.Browser
         {
             closeFinishedEvent = 
                 new ManualResetEventSlim(false);
-            
-            CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
-            {
 
-                // make sure we arent mid browser creation
-                // lock on browser
-                lock (browserLock)
+            // make sure we arent mid browser creation
+            // lock on browser
+            lock (browserLock)
+            {
+                CefRuntime.PostTask(CefThreadId.UI, BrowserTask.Create(() =>
                 {
                     if (browser != null)
                     {
@@ -199,12 +190,20 @@ namespace CLRBrowserSourcePlugin.Browser
                     {
                         closeFinishedEvent.Set();
                     }
-                }
+                }));
 
+                closeFinishedEvent.Wait();
+              
+                BrowserManager.Instance.UnregisterBrowser(
+                    browser.Identifier);
                 
-            }));
+                // clean up the other client stuff
+                UninitClient();
 
-            closeFinishedEvent.Wait();
+                // make sure browser doesn't get disposed before close has finished
+                browser = null;
+            }
+                
             closeFinishedEvent = null;
         }
 

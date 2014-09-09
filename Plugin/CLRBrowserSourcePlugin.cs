@@ -56,6 +56,14 @@ namespace CLRBrowserSourcePlugin
         public override void UnloadPlugin()
         {
             BrowserManager.Instance.Stop();
+
+            // This is required to stop a crash when debugging;
+            // apparently the WPF thread(?) doesn't shut down
+            // the appdomain unloading causes an access to now 
+            // invalidated local store data
+            // This should most likely be done in CLRHost after 
+            // removing all applications, but I'm not sure if it
+            // can access the thread local dispatcher from there
             Dispatcher.CurrentDispatcher.InvokeShutdown();
         }
     }

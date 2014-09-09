@@ -121,15 +121,6 @@ namespace CLRBrowserSourcePlugin.Browser
 
             if (browserConfig.BrowserSourceSettings.IsApplyingTemplate)
             {
-                String resolvedTemplate =
-                    browserConfig.BrowserSourceSettings.Template;
-                resolvedTemplate = resolvedTemplate.Replace("$(FILE)",
-                    browserConfig.BrowserSourceSettings.Url);
-                resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)",
-                    browserConfig.BrowserSourceSettings.Width.ToString());
-                resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)",
-                    browserConfig.BrowserSourceSettings.Height.ToString());
-
                 url = "http://absolute";
             }
 

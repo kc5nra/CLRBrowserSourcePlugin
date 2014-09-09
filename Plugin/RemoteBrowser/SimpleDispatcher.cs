@@ -1,28 +1,31 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
+
 namespace CLRBrowserSourcePlugin.RemoteBrowser
 {
     public class SimpleDispatcher
     {
-
         private BlockingCollection<Action> dispatchQueue;
         private bool isShutdown;
+        private Thread dispatchThread;
+        private CancellationTokenSource cts;
 
         public SimpleDispatcher()
         {
             dispatchQueue = new BlockingCollection<Action>();
+            cts = new CancellationTokenSource();
         }
 
         public void Start()
         {
             ManualResetEventSlim dispatcherStarted =
                 new ManualResetEventSlim();
-            Task.Factory.StartNew(() =>
+            dispatchThread = new Thread(() =>
             {
                 dispatcherStarted.Set();
                 while (!isShutdown)
@@ -31,6 +34,8 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                     action();
                 }
             });
+
+            dispatchThread.Start();
 
             dispatcherStarted.Wait();
         }
@@ -41,10 +46,10 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
                 new ManualResetEventSlim();
             dispatchQueue.Add(() =>
             {
-                isShutdown = false;
+                isShutdown = true;
                 dispatcherStopped.Set();
             });
-
+            cts.Cancel();
             dispatcherStopped.Wait();
         }
 

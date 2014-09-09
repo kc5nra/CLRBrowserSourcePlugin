@@ -1,25 +1,25 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.RemoteBrowser;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using Xilium.CefGlue;
-using CLRBrowserSourcePlugin.RemoteBrowser;
 
 namespace CLRBrowserSourcePlugin.Browser
 {
     internal class BrowserClient : CefClient
     {
         public BrowserLifeSpanHandler LifeSpanHandler { get; set; }
-        public BrowserDisplayHandler DisplayHandler { get; set; }
-        public BrowserRenderHandler RenderHandler { get; set; }
-        public BrowserLoadHandler LoadHandler { get; set; }
 
+        public BrowserDisplayHandler DisplayHandler { get; set; }
+
+        public BrowserRenderHandler RenderHandler { get; set; }
+
+        public BrowserLoadHandler LoadHandler { get; set; }
 
         public BrowserClient()
         {
-            
             LifeSpanHandler = new BrowserLifeSpanHandler();
             LoadHandler = new BrowserLoadHandler();
             DisplayHandler = new BrowserDisplayHandler();
@@ -44,6 +44,22 @@ namespace CLRBrowserSourcePlugin.Browser
         protected override CefLoadHandler GetLoadHandler()
         {
             return LoadHandler;
+        }
+
+        protected override bool OnProcessMessageReceived(CefBrowser browser, CefProcessId sourceProcess, CefProcessMessage message)
+        {
+            if (message.Name == "renderProcessIdResponse")
+            {
+                int renderProcessId = message.Arguments.GetInt(0);
+                BrowserWrapper browserWrapper;
+                if (BrowserManager.Instance.TryGetBrowser(
+                    browser.Identifier, out browserWrapper))
+                {
+                    browserWrapper.UpdateRenderProcessId(renderProcessId);
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.Browser;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,12 +10,12 @@ using Xilium.CefGlue;
 
 namespace CLRBrowserSourcePlugin.Shared
 {
-    class BrowserApp : CefApp
+    internal class BrowserApp : CefApp
     {
         private String[] arguments;
         private BrowserProcessHandler browserProcessHandler;
 
-        public BrowserApp(String[] arguments, 
+        public BrowserApp(String[] arguments,
             ManualResetEventSlim contextInitializedEvent)
         {
             this.arguments = arguments;
@@ -31,6 +32,7 @@ namespace CLRBrowserSourcePlugin.Shared
             {
                 this.contextInitializedEvent = contextInitializedEvent;
             }
+
             protected override void OnContextInitialized()
             {
                 contextInitializedEvent.Set();
@@ -50,7 +52,6 @@ namespace CLRBrowserSourcePlugin.Shared
 
         protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
         {
-
             // only happens if configuration is bad
             if (arguments != null)
             {
@@ -59,9 +60,12 @@ namespace CLRBrowserSourcePlugin.Shared
                     string normalizedArgument = argument;
                     if (argument.StartsWith("--"))
                     {
-                        if (argument.Length > 2) {
+                        if (argument.Length > 2)
+                        {
                             normalizedArgument = argument.Substring(2);
-                        } else {
+                        }
+                        else
+                        {
                             Console.WriteLine(
                                 "BrowserApp::OnBeforeCommandLineProcessing bad argument {0}",
                                 argument);
@@ -74,12 +78,12 @@ namespace CLRBrowserSourcePlugin.Shared
                     {
                         string name = normalizedArgument.Substring(0, argSplitIndex);
                         string value = normalizedArgument.Substring(argSplitIndex + 1);
-                        
+
                         if (value.StartsWith("\"") && value.EndsWith("\""))
                         {
                             value = value.Substring(1, value.Length - 2);
                         }
-                        
+
                         commandLine.AppendSwitch(name, value);
                     }
                     else
@@ -88,7 +92,7 @@ namespace CLRBrowserSourcePlugin.Shared
                     }
                 }
             }
-            
+
             // If these were not manually specified then
             // try to add pepflashplayer.dll
             if (!commandLine.HasSwitch("ppapi-out-of-process") &&

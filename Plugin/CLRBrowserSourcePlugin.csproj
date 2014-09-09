@@ -77,7 +77,7 @@
     <Reference Include="Accessibility" />
     <Reference Include="ICSharpCode.AvalonEdit, Version=4.3.1.9429, Culture=neutral, PublicKeyToken=9cc39be672370310, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>References\ICSharpCode.AvalonEdit.dll</HintPath>
+      <HintPath>..\..\OBS\rundir\plugins\CLRHostPlugin\CLRBrowserSourcePlugin\ICSharpCode.AvalonEdit.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -120,6 +120,7 @@
     <Compile Include="RemoteBrowser\BrowserTask.cs" />
     <Compile Include="RemoteBrowser\BrowserWrapper.cs" />
     <Compile Include="RemoteBrowser\MimeTypeManager.cs" />
+    <Compile Include="RemoteBrowser\RenderProcess.cs" />
     <Compile Include="RemoteBrowser\SharedTexture.cs" />
     <Compile Include="CLRBrowserSourcePlugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

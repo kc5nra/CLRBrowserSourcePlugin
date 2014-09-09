@@ -9,11 +9,12 @@ namespace CLRBrowserSourcePlugin.Browser
 {
     public delegate void OnLoadEndEventHandler(CefBrowser browser, CefFrame frame, int httpStatusCode);
 
-    class BrowserLoadHandler : CefLoadHandler
-    {        
+    internal class BrowserLoadHandler : CefLoadHandler
+    {
         protected override void OnLoadEnd(CefBrowser browser, CefFrame frame, int httpStatusCode)
         {
-            if (OnLoadEndEvent != null) {
+            if (OnLoadEndEvent != null)
+            {
                 OnLoadEndEvent(browser, frame, httpStatusCode);
             }
         }

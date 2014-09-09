@@ -1,16 +1,14 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.Browser;
+using CLROBS;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
-using System.Runtime.InteropServices;
-
-using CLROBS;
-using CLRBrowserSourcePlugin.Browser;
-using System.Reflection;
-
+using System.Windows.Threading;
 
 namespace CLRBrowserSourcePlugin
 {
@@ -47,7 +45,7 @@ namespace CLRBrowserSourcePlugin
             LoadLibrary(Path.Combine(libraryDirectory, "ffmpegsumo.dll"));
             LoadLibrary(Path.Combine(libraryDirectory, "icudt.dll"));
             LoadLibrary(Path.Combine(libraryDirectory, "libcef.dll"));
-          
+
             Browser.BrowserManager.Instance.Start();
 
             API.Instance.AddImageSourceFactory(new BrowserSourceFactory());
@@ -58,7 +56,7 @@ namespace CLRBrowserSourcePlugin
         public override void UnloadPlugin()
         {
             BrowserManager.Instance.Stop();
+            Dispatcher.CurrentDispatcher.InvokeShutdown();
         }
-
     }
 }

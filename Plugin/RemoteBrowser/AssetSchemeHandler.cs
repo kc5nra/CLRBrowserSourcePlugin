@@ -128,10 +128,25 @@ namespace CLRBrowserSourcePlugin.RemoteBrowser
             if (uri.LocalPath.Length == 1)
             {
                 isAssetWrapping = true;
+
+                string extension = Path.GetExtension(filename);
+                if (extension.Length > 1 && extension.StartsWith("."))
+                {
+                    extension = extension.Substring(1);
+                }
+
+                string wrappedAssetMimeType;
+                if (!MimeTypeManager.MimeTypes.TryGetValue(extension, out wrappedAssetMimeType))
+                {
+                    wrappedAssetMimeType = "text/html";
+                }
+
                 string resolvedTemplate = config.BrowserSourceSettings.Template;
+
                 resolvedTemplate = resolvedTemplate.Replace("$(FILE)", filename);
                 resolvedTemplate = resolvedTemplate.Replace("$(WIDTH)", config.BrowserSourceSettings.Width.ToString());
                 resolvedTemplate = resolvedTemplate.Replace("$(HEIGHT)", config.BrowserSourceSettings.Height.ToString());
+                resolvedTemplate = resolvedTemplate.Replace("$(MIMETYPE)", wrappedAssetMimeType);
                 inputStream = new MemoryStream(Encoding.UTF8.GetBytes(resolvedTemplate));
             }
             else

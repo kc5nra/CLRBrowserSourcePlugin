@@ -4,9 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:WinForms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+             xmlns:local="clr-namespace:CLRBrowserSourcePlugin"
              mc:Ignorable="d" Title="CLR Browser Configuration" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Height="504" Width="820">
 
     <Grid x:Name="mainGrid" HorizontalAlignment="Left" Height="494" VerticalAlignment="Top" Width="810" Margin="0,0,0,0">
+        <Grid.Resources>
+            <BooleanToVisibilityConverter x:Key="b2v" />
+            <local:VolumeProgressBarValueConverter x:Key="VolumeProgressBarValueConverter" />
+        </Grid.Resources>
         <Grid.ColumnDefinitions>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -62,17 +67,30 @@
                             <Label Content="URL" RenderTransformOrigin="0.513,-0.308" Grid.RowSpan="2" Height="26" VerticalAlignment="Top" Grid.Row="1" HorizontalAlignment="Left" Width="47" Margin="10,0,0,0" Grid.ColumnSpan="2" />
                             <TextBox x:Name="url" Height="23" Margin="10,5,12,0" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="3" />
                             <GroupBox Header="Output Characteristics" HorizontalAlignment="Left" Margin="16,41,0,0" Grid.Row="2" VerticalAlignment="Top" Height="132" Width="484" Grid.Column="2" Grid.ColumnSpan="2">
-                                <Grid Margin="0,0,-2,-3">
+                                <Grid Margin="0,0,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="51*" />
                                         <ColumnDefinition Width="107*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="fpsTextBox"  Height="23" Margin="47,78,72,12" />
+                                    <TextBox x:Name="fpsTextBox"  Height="23" Margin="70,78,49,0" VerticalAlignment="Top" />
                                     <Slider x:Name="opacitySlider" Margin="10,36,0,0" HorizontalAlignment="Left" Width="133" Height="35" VerticalAlignment="Top" Maximum="1" Value="1" TickFrequency="0.05" LargeChange="0.2" SmallChange="0.05" TickPlacement="Both" />
                                     <Label Content="Opacity" Margin="10,10,10,0" VerticalAlignment="Top" />
-                                    <Label Content="Muf Smells" Margin="10" Grid.Column="1" FontFamily="Comic Sans MS" FontSize="48" HorizontalAlignment="Center" />
-                                    <Rectangle x:Name="opacityRectangle" Margin="10,9,10,11" Grid.Column="1" Fill="Black" RadiusX="5" RadiusY="5" StrokeDashCap="Round" StrokeThickness="5" Opacity="{Binding ElementName=opacitySlider, Path=Value}" />
-                                    <Label Content="FPS" Margin="10,76,111,0" VerticalAlignment="Top" Height="27" />
+                                    <Label Content="Muf Smells" Margin="29,10,29,50" Grid.Column="1" FontFamily="Comic Sans MS" FontSize="48" HorizontalAlignment="Center" />
+                                    <Rectangle x:Name="opacityRectangle" Margin="10,9,10,0" Grid.Column="1" Fill="Black" RadiusX="5" RadiusY="5" StrokeDashCap="Round" StrokeThickness="5" Opacity="{Binding ElementName=opacitySlider, Path=Value}" Height="93" VerticalAlignment="Top" />
+                                    <Label Content="FPS" Margin="32,76,89,0" VerticalAlignment="Top" Height="27" />
+                                    <!--
+                                    <Slider IsEnabled="{Binding ElementName=mutedCheckbox, Path=IsChecked}" x:Name="volumeSlider"  Grid.ColumnSpan="2" Margin="84,121,226,10" Maximum="100" Value="100">
+                                        <Slider.LayoutTransform>
+                                            <ScaleTransform ScaleY="0.7" />
+                                        </Slider.LayoutTransform>
+                                    </Slider>
+
+                                    <CheckBox Checked="mutedCheckbox_Checked" Unchecked="mutedCheckbox_Unchecked" x:Name="mutedCheckbox" Margin="16,126,78,7" Content="Volume" />
+                                    <ProgressBar IsEnabled="{Binding ElementName=mutedCheckbox, Path=IsChecked}" Margin="88,140,230,5" Value="{Binding ElementName=volumeSlider, Path=Value}" Grid.ColumnSpan="2"
+                                                 Foreground="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Value, Converter={StaticResource VolumeProgressBarValueConverter}}">
+                                    </ProgressBar>
+                                    <TextBlock x:Name="mutedTextBlock" Text="Muted" Grid.Column="1" Margin="104,125,176,7" Foreground="Red" FontWeight="Bold" Visibility="{Binding ElementName=mutedCheckbox, Path=IsChecked, Converter={StaticResource b2v}}" />
+                                    -->
                                 </Grid>
                             </GroupBox>
                             <CheckBox x:Name="applyTemplateCheckBox" Grid.ColumnSpan="2" Margin="12,157,10,0" Grid.Row="2" Content="Intercept request and apply template" Height="16" VerticalAlignment="Top" Checked="applyTemplateCheckBox_Checked" Unchecked="applyTemplateCheckBox_Checked" />

@@ -262,18 +262,12 @@ namespace CLRBrowserSourcePlugin.Shared
                 + "       </style>\r\n"
                 + "  </head>\r\n"
                 + "  <body>\r\n"
-                + "    <object width='$(WIDTH)' height='$(HEIGHT)'>\r\n"
-                + "      <param name='movie' value='$(FILE)'></param>\r\n"
-                + "      <param name='allowscriptaccess' value='always'></param>\r\n"
-                + "      <param name='wmode' value='transparent'></param>\r\n"
-                + "      <embed \r\n"
-                + "        src='$(FILE)' \r\n"
-                + "        type='application/x-shockwave-flash' \r\n"
-                + "        allowscriptaccess='always' \r\n"
-                + "        width='$(WIDTH)' \r\n"
-                + "        height='$(HEIGHT)' \r\n"
-                + "        wmode='transparent'>\r\n"
-                + "      </embed>\r\n"
+                + "    <object\r\n"
+                + "      type='$(MIMETYPE)'\r\n"
+                + "      width='$(WIDTH)'\r\n"
+                + "      height='$(HEIGHT)'\r\n"
+                + "      data='$(FILE)'\r\n"
+                + "      wmode='transparent'>\r\n"
                 + "    </object>\r\n"
                 + "  </body>\r\n"
                 + "</html>\r\n";
@@ -309,6 +303,12 @@ namespace CLRBrowserSourcePlugin.Shared
 
         [DataMember]
         public double Opacity { get; set; }
+
+        [DataMember]
+        public bool IsMuted { get; set; }
+
+        [DataMember]
+        public float Volume { get; set; }
     }
 
     [DataContract]

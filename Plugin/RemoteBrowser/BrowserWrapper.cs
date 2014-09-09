@@ -17,7 +17,10 @@ namespace CLRBrowserSourcePlugin.Browser
         private BrowserClient browserClient;
         private CefBrowser browser;
         private object browserLock = new object();
+
         public BrowserConfig BrowserConfig { get; private set; }
+
+        public RenderProcess renderProcess;
 
         public BrowserWrapper()
         {
@@ -142,6 +145,10 @@ namespace CLRBrowserSourcePlugin.Browser
                             browserClient, browserSettings, new Uri(url));
                         BrowserManager.Instance.RegisterBrowser(browser.Identifier,
                             this);
+
+                        // request the render process id for volume control
+                        browser.SendProcessMessage(CefProcessId.Renderer,
+                            CefProcessMessage.Create("renderProcessIdRequest"));
                     }
                     catch (Exception)
                     {
@@ -158,7 +165,7 @@ namespace CLRBrowserSourcePlugin.Browser
             return browser != null;
         }
 
-        ManualResetEventSlim closeFinishedEvent;
+        private ManualResetEventSlim closeFinishedEvent;
 
         private void OnBeforeClose(CefBrowser browser)
         {
@@ -169,7 +176,7 @@ namespace CLRBrowserSourcePlugin.Browser
 
         public void CloseBrowser(bool isForcingClose)
         {
-            closeFinishedEvent = 
+            closeFinishedEvent =
                 new ManualResetEventSlim(false);
 
             // make sure we arent mid browser creation
@@ -180,7 +187,6 @@ namespace CLRBrowserSourcePlugin.Browser
                 {
                     if (browser != null)
                     {
-                        
                         browserClient.LifeSpanHandler.OnBeforeCloseEvent =
                             new OnBeforeCloseEventHandler(OnBeforeClose);
 
@@ -193,17 +199,17 @@ namespace CLRBrowserSourcePlugin.Browser
                 }));
 
                 closeFinishedEvent.Wait();
-              
+
                 BrowserManager.Instance.UnregisterBrowser(
                     browser.Identifier);
-                
+
                 // clean up the other client stuff
                 UninitClient();
 
                 // make sure browser doesn't get disposed before close has finished
                 browser = null;
             }
-                
+
             closeFinishedEvent = null;
         }
 
@@ -238,6 +244,13 @@ namespace CLRBrowserSourcePlugin.Browser
             rect.Height = BrowserConfig.BrowserSourceSettings.Height;
 
             return true;
+        }
+
+        public void UpdateRenderProcessId(int renderProcessId)
+        {
+            RenderProcess renderProcess = new RenderProcess(renderProcessId);
+            renderProcess.IsMuted = BrowserConfig.BrowserSourceSettings.IsMuted;
+            renderProcess.Volume = BrowserConfig.BrowserSourceSettings.Volume;
         }
     }
 }

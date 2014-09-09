@@ -5,6 +5,7 @@ using ICSharpCode.AvalonEdit.Highlighting;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,31 @@ using System.Windows.Shapes;
 
 namespace CLRBrowserSourcePlugin
 {
+    public class VolumeProgressBarValueConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            double progress = (double)value;
+            Brush foreground = Brushes.Green;
+
+            if (progress >= 90d)
+            {
+                foreground = Brushes.Red;
+            }
+            else if (progress >= 60d)
+            {
+                foreground = Brushes.Yellow;
+            }
+
+            return foreground;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     /// <summary>
     /// Interaction logic for SampleConfiguration.xaml
     /// </summary>
@@ -114,10 +140,15 @@ namespace CLRBrowserSourcePlugin
             config.BrowserSourceSettings.Height = height;
             config.BrowserSourceSettings.CSS = cssEditor.Text;
             config.BrowserSourceSettings.Template = templateEditor.Text;
-            config.BrowserSourceSettings.IsShowingAdvancedProperties = advancedPropertiesCheckBox.IsChecked.GetValueOrDefault();
-            config.BrowserSourceSettings.IsApplyingTemplate = applyTemplateCheckBox.IsChecked.GetValueOrDefault();
+            config.BrowserSourceSettings.IsShowingAdvancedProperties =
+                advancedPropertiesCheckBox.IsChecked.GetValueOrDefault();
+            config.BrowserSourceSettings.IsApplyingTemplate =
+                applyTemplateCheckBox.IsChecked.GetValueOrDefault();
             config.BrowserSourceSettings.Opacity = opacitySlider.Value;
             config.BrowserSourceSettings.Fps = fps;
+            //config.BrowserSourceSettings.IsMuted =
+            //    !mutedCheckbox.IsChecked.GetValueOrDefault(false);
+            //config.BrowserSourceSettings.Volume = (float)volumeSlider.Value;
 
             DialogResult = config.Save(dataElement);
 
@@ -170,5 +201,15 @@ namespace CLRBrowserSourcePlugin
                 url.Text = "http://absolute/" + dlg.FileName;
             }
         }
+
+        //private void mutedCheckbox_Checked(object sender, RoutedEventArgs e)
+        //{
+        //    mutedTextBlock.Visibility = Visibility.Hidden;
+        //}
+
+        //private void mutedCheckbox_Unchecked(object sender, RoutedEventArgs e)
+        //{
+        //    mutedTextBlock.Visibility = Visibility.Visible;
+        //}
     }
 }

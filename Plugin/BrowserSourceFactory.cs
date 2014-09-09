@@ -1,17 +1,16 @@
-﻿using System;
+﻿using CLRBrowserSourcePlugin.Shared;
+using CLROBS;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using CLROBS;
-using CLRBrowserSourcePlugin.Shared;
-
 namespace CLRBrowserSourcePlugin
 {
-    class BrowserSourceFactory : AbstractImageSourceFactory
+    internal class BrowserSourceFactory : AbstractImageSourceFactory
     {
-        public BrowserSourceFactory()        
+        public BrowserSourceFactory()
         {
             ClassName = "CLRBrowserSource";
             DisplayName = "CLR Browser";
@@ -24,7 +23,6 @@ namespace CLRBrowserSourcePlugin
 
         public override bool ShowConfiguration(XElement data)
         {
-            
             ConfigDialog dialog = new ConfigDialog(data);
             if (dialog.ShowDialog().GetValueOrDefault(false))
             {
